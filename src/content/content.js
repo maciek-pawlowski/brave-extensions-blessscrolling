@@ -14,12 +14,16 @@
     facebook: {
       active: false,
       watchedKeys: [],
-      challenge: null
+      challenge: null,
+      navigationSerial: 0,
+      lastNavigationAt: 0
     },
     youtube: {
       active: false,
       watchedKeys: [],
-      challenge: null
+      challenge: null,
+      navigationSerial: 0,
+      lastNavigationAt: 0
     }
   };
   var pendingDoomPromptKeys = {
@@ -782,6 +786,7 @@
         video && video.creator,
         video && video.handle,
         getFacebookVideoSource(node),
+        getRabbitHoleContentKeySuffix("facebook"),
         getNodeText(node).slice(0, 700)
       ].join(" ")).slice(0, 1000);
     }
@@ -1612,6 +1617,8 @@
     state.active = false;
     state.watchedKeys = [];
     state.challenge = null;
+    state.navigationSerial = 0;
+    state.lastNavigationAt = 0;
   }
 
   function activateRabbitHole(platform) {
@@ -1622,6 +1629,33 @@
     }
 
     state.active = true;
+  }
+
+  function getRabbitHoleContentKeySuffix(platform) {
+    var state = getRabbitHoleState(platform);
+
+    if (!state || !state.active || !isSequentialDoomContext(platform)) {
+      return "";
+    }
+
+    return "rabbit-hole-step:" + state.navigationSerial;
+  }
+
+  function registerRabbitHoleNavigation(platform) {
+    var state = getRabbitHoleState(platform);
+    var now = Date.now();
+
+    if (!state || !state.active || !isSequentialDoomContext(platform) || state.challenge) {
+      return;
+    }
+
+    if (now - state.lastNavigationAt < 600) {
+      return;
+    }
+
+    state.lastNavigationAt = now;
+    state.navigationSerial += 1;
+    scheduleScan(80);
   }
 
   function hasRabbitHoleWatched(platform, contentKey) {
@@ -2192,6 +2226,8 @@
       if (node.dataset.psfGate === "facebook-reels-entry") {
         facebookReelsEntryGateAccepted = true;
         activateRabbitHole("facebook");
+        getRabbitHoleState("facebook").navigationSerial = 0;
+        getRabbitHoleState("facebook").lastNavigationAt = 0;
         pendingDoomPromptKeys.facebook = "";
         removeFacebookReelsEntryGate();
         scheduleScan(20);
@@ -2200,6 +2236,7 @@
 
       contentKey = contentKey || getContentKey(getPlatform(), node, getExtractor(getPlatform())(node));
       activateRabbitHole(getPlatform());
+      getRabbitHoleState(getPlatform()).lastNavigationAt = 0;
       markRabbitHoleWatched(getPlatform(), contentKey);
       rememberAllowedOnceKey(contentKey);
       pendingDoomPromptKeys[getPlatform()] = isSequentialDoomContext(getPlatform()) ? contentKey : "";
@@ -2283,6 +2320,28 @@
       }
     }, true);
   });
+
+  document.addEventListener("wheel", function handleRabbitHoleWheel(event) {
+    if (event.target && event.target.closest && event.target.closest(".psf-overlay")) {
+      return;
+    }
+
+    registerRabbitHoleNavigation(getPlatform());
+  }, true);
+
+  document.addEventListener("keydown", function handleRabbitHoleKeyboardNavigation(event) {
+    var navigationKeys = ["ArrowDown", "ArrowUp", "PageDown", "PageUp", " ", "Spacebar"];
+
+    if (event.target && event.target.closest && event.target.closest(".psf-overlay")) {
+      return;
+    }
+
+    if (navigationKeys.indexOf(event.key) === -1) {
+      return;
+    }
+
+    registerRabbitHoleNavigation(getPlatform());
+  }, true);
 
   document.addEventListener("play", function handleBlockedPlay(event) {
     if (event.target && event.target.tagName === "VIDEO") {
