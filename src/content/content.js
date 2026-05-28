@@ -1696,11 +1696,16 @@
     var button = document.createElement("button");
     var error = document.createElement("div");
 
+    if (existing && existing.classList.contains("psf-overlay-math") && existing.dataset.psfContentKey === String(contentKey || "")) {
+      return;
+    }
+
     if (existing) {
       existing.remove();
     }
 
     overlay.className = "psf-overlay psf-overlay-math";
+    overlay.dataset.psfContentKey = contentKey || "";
     title.className = "psf-overlay-title";
     title.textContent = "Krótki test przytomności";
     equation.className = "psf-math-question";
@@ -2249,12 +2254,19 @@
   }, true);
 
   document.addEventListener("keydown", function handleMathEnter(event) {
-    if (event.key !== "Enter" || !event.target || !event.target.matches(".psf-math-answer")) {
+    if (!event.target || !event.target.matches(".psf-math-answer")) {
       return;
     }
 
     var overlay = event.target.closest(".psf-overlay");
     var button = overlay && overlay.querySelector("button[data-psf-action='math-submit']");
+
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
+    if (event.key !== "Enter") {
+      return;
+    }
 
     if (!button) {
       return;
@@ -2263,6 +2275,14 @@
     event.preventDefault();
     button.click();
   }, true);
+
+  ["beforeinput", "input", "keyup"].forEach(function protectMathInput(eventName) {
+    document.addEventListener(eventName, function stopFacebookMathInputHandling(event) {
+      if (event.target && event.target.matches(".psf-math-answer")) {
+        event.stopPropagation();
+      }
+    }, true);
+  });
 
   document.addEventListener("play", function handleBlockedPlay(event) {
     if (event.target && event.target.tagName === "VIDEO") {
