@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>bleSSScrolling</title>
+    <link rel="stylesheet" href="options.css">
+  </head>
+  <body>
+    <main class="page">
+      <header class="header">
+        <div>
+          <h1>bleSSScrolling</h1>
+          <p>Lokalny filtr Shorts/Reels dla Brave. Reguły zostają w przeglądarce.</p>
+        </div>
+        <div class="header-actions">
+          <div id="status" class="status" role="status" aria-live="polite"></div>
+          <button id="save" type="button">Zapisz</button>
+          <button id="reset" type="button">Przywróć domyślne</button>
+        </div>
+      </header>
+
+      <section class="panel toggles" aria-label="Ustawienia podstawowe">
+        <label>
+          <input id="enabled" type="checkbox">
+          <span>Włącz filtr</span>
+        </label>
+        <label>
+          <input id="strictMode" type="checkbox">
+          <span>Tryb strict: ukrywaj treści bez dopasowania</span>
+        </label>
+        <label>
+          <input id="overlayMode" type="checkbox">
+          <span>Pokazuj panel zamiast ukrywać bez śladu</span>
+        </label>
+      </section>
+
+      <section class="grid" aria-label="Listy reguł">
+        <label class="field">
+          <span>Dozwoleni twórcy</span>
+          <textarea id="allowedCreators" spellcheck="false"></textarea>
+        </label>
+        <label class="field">
+          <span>Zablokowani twórcy</span>
+          <textarea id="blockedCreators" spellcheck="false"></textarea>
+        </label>
+        <label class="field">
+          <span>Dozwolone słowa</span>
+          <textarea id="allowedKeywords" spellcheck="false"></textarea>
+        </label>
+        <label class="field">
+          <span>Zablokowane słowa</span>
+          <textarea id="blockedKeywords" spellcheck="false"></textarea>
+        </label>
+      </section>
+
+      <section class="panel guide" aria-label="Instrukcja trenowania algorytmów">
+        <h2>Ręczne trenowanie platform</h2>
+        <p>Rozszerzenie filtruje widok w przeglądarce. Dla algorytmów konta nadal używaj oficjalnych opcji: YouTube `Not interested` i `Don't recommend channel`, Facebook/Instagram `Show less` albo `Not interested`.</p>
+      </section>
+
+    </main>
+
+    <script src="../shared/defaults.js"></script>
+    <script src="options.js"></script>
+  </body>
+</html>

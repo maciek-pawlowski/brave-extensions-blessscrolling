@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "bleSSScrolling",
+  "version": "0.1.0",
+  "description": "Local Brave/Chromium filter that hides Shorts and Reels that encourage you to doomscroll.",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://www.youtube.com/*",
+    "https://m.youtube.com/*",
+    "https://www.facebook.com/*",
+    "https://web.facebook.com/*",
+    "https://www.instagram.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.youtube.com/*",
+        "https://m.youtube.com/*",
+        "https://www.facebook.com/*",
+        "https://web.facebook.com/*",
+        "https://www.instagram.com/*"
+      ],
+      "js": [
+        "src/shared/defaults.js",
+        "src/shared/matcher.js",
+        "src/content/content.js"
+      ],
+      "css": [
+        "src/content/content.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "bleSSScrolling",
+    "default_popup": "src/popup/popup.html"
+  },
+  "options_page": "src/options/options.html"
+}

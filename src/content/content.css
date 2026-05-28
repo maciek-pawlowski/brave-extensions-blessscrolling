@@ -1,0 +1,202 @@
+.psf-filtered {
+  position: relative !important;
+}
+
+.psf-filtered.psf-hidden {
+  display: none !important;
+}
+
+.psf-filtered.psf-covered > :not(.psf-overlay) {
+  filter: blur(8px) grayscale(0.8) !important;
+  opacity: 0.16 !important;
+  pointer-events: none !important;
+}
+
+.psf-youtube-card.psf-covered {
+  background: #11161d !important;
+  border: 1px solid #343c49 !important;
+  border-radius: 8px !important;
+  box-sizing: border-box !important;
+  contain: paint !important;
+  overflow: hidden !important;
+}
+
+.psf-facebook-reel-card.psf-covered {
+  background: #11161d !important;
+  border: 1px solid #343c49 !important;
+  border-radius: 8px !important;
+  box-sizing: border-box !important;
+  contain: paint !important;
+  overflow: hidden !important;
+}
+
+.psf-youtube-card.psf-covered > :not(.psf-overlay) {
+  display: none !important;
+}
+
+.psf-facebook-reel-card.psf-covered > :not(.psf-overlay) {
+  display: none !important;
+}
+
+.psf-overlay {
+  align-items: center !important;
+  background: rgba(18, 22, 28, 0.96) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  border-radius: 8px !important;
+  box-sizing: border-box !important;
+  color: #f7f8fa !important;
+  display: flex !important;
+  flex-direction: column !important;
+  font-family: Arial, Helvetica, sans-serif !important;
+  gap: 10px !important;
+  inset: 8px !important;
+  justify-content: center !important;
+  min-height: 140px !important;
+  padding: 18px !important;
+  position: absolute !important;
+  text-align: center !important;
+  z-index: 2147483647 !important;
+}
+
+.psf-youtube-card > .psf-overlay {
+  background: #11161d !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  inset: auto !important;
+  min-height: 100% !important;
+  padding: 20px !important;
+  position: static !important;
+  width: 100% !important;
+  z-index: auto !important;
+}
+
+.psf-facebook-reel-card > .psf-overlay {
+  background: #11161d !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  inset: auto !important;
+  min-height: 100% !important;
+  padding: 16px !important;
+  position: static !important;
+  width: 100% !important;
+  z-index: auto !important;
+}
+
+.psf-overlay-doom {
+  gap: 18px !important;
+  padding: 28px !important;
+}
+
+.psf-overlay-title {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+}
+
+.psf-overlay-doom .psf-overlay-title {
+  color: #ffffff !important;
+  font-size: 34px !important;
+  font-weight: 900 !important;
+  line-height: 1.2 !important;
+  margin: 0 !important;
+  max-width: 560px !important;
+  opacity: 1 !important;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.75) !important;
+}
+
+.psf-youtube-card .psf-overlay-title {
+  font-size: 13px !important;
+  max-width: 190px !important;
+}
+
+.psf-facebook-reel-card .psf-overlay-title {
+  font-size: 13px !important;
+  max-width: 190px !important;
+}
+
+.psf-youtube-card .psf-overlay-doom .psf-overlay-title,
+.psf-facebook-reel-card .psf-overlay-doom .psf-overlay-title {
+  color: #ffffff !important;
+  font-size: 30px !important;
+  font-weight: 900 !important;
+  max-width: 520px !important;
+  opacity: 1 !important;
+}
+
+.psf-overlay-reason {
+  color: #d7dbe3 !important;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+  max-width: 320px !important;
+}
+
+.psf-youtube-card .psf-overlay-reason {
+  font-size: 11px !important;
+  max-width: 180px !important;
+}
+
+.psf-facebook-reel-card .psf-overlay-reason {
+  font-size: 11px !important;
+  max-width: 180px !important;
+}
+
+.psf-overlay-actions {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  justify-content: center !important;
+}
+
+.psf-overlay-actions-stacked {
+  align-items: center !important;
+  flex-direction: column !important;
+}
+
+.psf-overlay-doom .psf-overlay-actions {
+  align-items: center !important;
+  flex-direction: column !important;
+}
+
+.psf-overlay button {
+  appearance: none !important;
+  background: #ffffff !important;
+  border: 0 !important;
+  border-radius: 6px !important;
+  color: #12161c !important;
+  cursor: pointer !important;
+  font: 700 12px/1 Arial, Helvetica, sans-serif !important;
+  min-height: 30px !important;
+  padding: 8px 10px !important;
+}
+
+.psf-youtube-card .psf-overlay button {
+  font-size: 11px !important;
+  min-height: 28px !important;
+  padding: 7px 9px !important;
+}
+
+.psf-facebook-reel-card .psf-overlay button {
+  font-size: 11px !important;
+  min-height: 28px !important;
+  padding: 7px 9px !important;
+}
+
+.psf-overlay button:hover {
+  background: #dfe7f3 !important;
+}
+
+.psf-overlay button[data-psf-action="block-creator"] {
+  background: #ffd6d6 !important;
+}
+
+.psf-overlay button[data-psf-action="allow-creator"] {
+  background: #d7f7df !important;
+}
+
+.psf-overlay button[data-psf-action="doom-yes"] {
+  background: #ffd6d6 !important;
+}
+
+.psf-overlay button[data-psf-action="doom-no"] {
+  background: #d7f7df !important;
+}
