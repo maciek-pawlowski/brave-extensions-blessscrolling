@@ -108,6 +108,11 @@
   padding: 28px !important;
 }
 
+.psf-overlay-math {
+  gap: 14px !important;
+  padding: 24px !important;
+}
+
 .psf-overlay-title {
   font-size: 15px !important;
   font-weight: 700 !important;
@@ -149,6 +154,44 @@
   font-size: 12px !important;
   line-height: 1.35 !important;
   max-width: 320px !important;
+}
+
+.psf-math-question {
+  color: #ffffff !important;
+  font-size: 28px !important;
+  font-weight: 900 !important;
+  line-height: 1.15 !important;
+}
+
+.psf-math-actions {
+  align-items: center !important;
+}
+
+.psf-math-answer {
+  appearance: textfield !important;
+  background: #ffffff !important;
+  border: 0 !important;
+  border-radius: 6px !important;
+  box-sizing: border-box !important;
+  color: #12161c !important;
+  font: 800 16px/1 Arial, Helvetica, sans-serif !important;
+  height: 38px !important;
+  max-width: 120px !important;
+  padding: 8px 10px !important;
+  text-align: center !important;
+}
+
+.psf-math-answer::-webkit-outer-spin-button,
+.psf-math-answer::-webkit-inner-spin-button {
+  appearance: none !important;
+  margin: 0 !important;
+}
+
+.psf-math-error {
+  color: #ffd6d6 !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  min-height: 16px !important;
 }
 
 .psf-youtube-card .psf-overlay-reason {

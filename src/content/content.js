@@ -10,6 +10,18 @@
   var blockedVideos = new WeakMap();
   var facebookReelsEntryGateAccepted = false;
   var facebookReelsEntryBlockedNode = null;
+  var rabbitHoleState = {
+    facebook: {
+      active: false,
+      watchedKeys: [],
+      challenge: null
+    },
+    youtube: {
+      active: false,
+      watchedKeys: [],
+      challenge: null
+    }
+  };
   var pendingDoomPromptKeys = {
     facebook: "",
     youtube: ""
@@ -1497,6 +1509,218 @@
     });
   }
 
+  function getRabbitHoleState(platform) {
+    return rabbitHoleState[platform] || null;
+  }
+
+  function resetRabbitHole(platform) {
+    var state = getRabbitHoleState(platform);
+
+    if (!state) {
+      return;
+    }
+
+    state.active = false;
+    state.watchedKeys = [];
+    state.challenge = null;
+  }
+
+  function activateRabbitHole(platform) {
+    var state = getRabbitHoleState(platform);
+
+    if (!state) {
+      return;
+    }
+
+    state.active = true;
+  }
+
+  function hasRabbitHoleWatched(platform, contentKey) {
+    var state = getRabbitHoleState(platform);
+
+    return !!(state && contentKey && state.watchedKeys.indexOf(contentKey) !== -1);
+  }
+
+  function markRabbitHoleWatched(platform, contentKey) {
+    var state = getRabbitHoleState(platform);
+
+    if (!state || !contentKey || hasRabbitHoleWatched(platform, contentKey)) {
+      return;
+    }
+
+    state.watchedKeys.push(contentKey);
+
+    if (state.watchedKeys.length > 80) {
+      state.watchedKeys.shift();
+    }
+  }
+
+  function generateMathChallenge() {
+    var operation = ["+", "-", "×"][Math.floor(Math.random() * 3)];
+    var left;
+    var right;
+    var answer;
+
+    if (operation === "×") {
+      left = 2 + Math.floor(Math.random() * 11);
+      right = 2 + Math.floor(Math.random() * 11);
+      answer = left * right;
+    } else if (operation === "-") {
+      left = 10 + Math.floor(Math.random() * 80);
+      right = 1 + Math.floor(Math.random() * left);
+      answer = left - right;
+    } else {
+      left = 5 + Math.floor(Math.random() * 70);
+      right = 5 + Math.floor(Math.random() * 70);
+      answer = left + right;
+    }
+
+    return {
+      question: left + " " + operation + " " + right + " = ?",
+      answer: answer
+    };
+  }
+
+  function getRabbitHoleChallenge(platform, contentKey) {
+    var state = getRabbitHoleState(platform);
+
+    if (!state) {
+      return null;
+    }
+
+    if (!state.challenge || state.challenge.contentKey !== contentKey) {
+      state.challenge = Object.assign({
+        contentKey: contentKey
+      }, generateMathChallenge());
+    }
+
+    return state.challenge;
+  }
+
+  function createMathChallengeOverlay(node, platform, contentKey, challenge) {
+    var existing = node.querySelector(":scope > .psf-overlay");
+    var overlay = document.createElement("div");
+    var title = document.createElement("h1");
+    var equation = document.createElement("div");
+    var actions = document.createElement("div");
+    var input = document.createElement("input");
+    var button = document.createElement("button");
+    var error = document.createElement("div");
+
+    if (existing) {
+      existing.remove();
+    }
+
+    overlay.className = "psf-overlay psf-overlay-math";
+    title.className = "psf-overlay-title";
+    title.textContent = "Krótki test przytomności";
+    equation.className = "psf-math-question";
+    equation.textContent = challenge.question;
+    actions.className = "psf-overlay-actions psf-math-actions";
+
+    input.className = "psf-math-answer";
+    input.type = "number";
+    input.inputMode = "numeric";
+    input.placeholder = "Wynik";
+    input.setAttribute("aria-label", "Wynik działania matematycznego");
+
+    button.type = "button";
+    button.dataset.psfAction = "math-submit";
+    button.dataset.psfPlatform = platform;
+    button.dataset.psfContentKey = contentKey || "";
+    button.textContent = "Odblokuj wideo";
+
+    error.className = "psf-math-error";
+    error.setAttribute("aria-live", "polite");
+
+    actions.appendChild(input);
+    actions.appendChild(button);
+    overlay.appendChild(title);
+    overlay.appendChild(equation);
+    overlay.appendChild(actions);
+    overlay.appendChild(error);
+    node.appendChild(overlay);
+
+    window.setTimeout(function focusMathInput() {
+      input.focus();
+    }, 30);
+  }
+
+  function applyMathChallenge(node, video, platform, contentKey, challenge) {
+    if (isDocumentScaleContainer(node) && !(video && video.platform === "facebook" && isFacebookActiveReelNode(node))) {
+      return;
+    }
+
+    node.classList.add("psf-filtered", "psf-covered");
+    node.classList.remove("psf-hidden");
+
+    if (platform === "youtube") {
+      node.classList.add("psf-youtube-card");
+    } else {
+      node.classList.remove("psf-youtube-card");
+    }
+
+    if (platform === "facebook" && isFacebookReelCard(node)) {
+      node.classList.add("psf-facebook-reel-card");
+    } else {
+      node.classList.remove("psf-facebook-reel-card");
+    }
+
+    node.dataset.psfStatus = "math";
+    node.dataset.psfReason = "Zagadka matematyczna co 5 filmików.";
+    blockPlayback(node);
+    createMathChallengeOverlay(node, platform, contentKey, challenge);
+  }
+
+  function shouldRunRabbitHoleMath(platform, video, contentKey) {
+    var state = getRabbitHoleState(platform);
+
+    return !!(state &&
+      state.active &&
+      video &&
+      video.platform === platform &&
+      contentKey &&
+      isSequentialDoomContext(platform));
+  }
+
+  function handleRabbitHoleMathGate(platform, node, video, contentKey) {
+    var state = getRabbitHoleState(platform);
+    var challenge;
+
+    if (!shouldRunRabbitHoleMath(platform, video, contentKey)) {
+      return false;
+    }
+
+    if (hasRabbitHoleWatched(platform, contentKey)) {
+      rememberAllowedOnceKey(contentKey);
+      return false;
+    }
+
+    if (state.watchedKeys.length > 0 && state.watchedKeys.length % 5 === 0) {
+      challenge = getRabbitHoleChallenge(platform, contentKey);
+      applyMathChallenge(node, video, platform, contentKey, challenge);
+      return true;
+    }
+
+    markRabbitHoleWatched(platform, contentKey);
+    state.challenge = null;
+    rememberAllowedOnceKey(contentKey);
+    return false;
+  }
+
+  function passRabbitHoleMathChallenge(platform, contentKey) {
+    var state = getRabbitHoleState(platform);
+
+    if (!state || !contentKey) {
+      return;
+    }
+
+    markRabbitHoleWatched(platform, contentKey);
+    state.challenge = null;
+    rememberAllowedOnceKey(contentKey);
+    clearPlatformFiltersForKey(platform, contentKey);
+  }
+
   function getFacebookReelsEntryGateKey() {
     return "facebook-reels-entry";
   }
@@ -1769,6 +1993,7 @@
 
     if ((platform === "facebook" || platform === "youtube") && !isSequentialDoomContext(platform)) {
       pendingDoomPromptKeys[platform] = "";
+      resetRabbitHole(platform);
     }
 
     candidates.forEach(function process(node) {
@@ -1778,6 +2003,10 @@
       var allowedOnceFingerprint = allowedOnce.get(node);
       var previous;
       var result;
+
+      if (handleRabbitHoleMathGate(platform, node, video, contentKey)) {
+        return;
+      }
 
       if (((platform === "facebook" || platform === "youtube") && isAllowedOnceKey(contentKey)) || (allowedOnceFingerprint && allowedOnceFingerprint === textFingerprint)) {
         clearFilter(node);
@@ -1837,6 +2066,9 @@
     if (action === "show-once") {
       if (getPlatform() === "facebook" || getPlatform() === "youtube") {
         contentKey = contentKey || getContentKey(getPlatform(), node, getExtractor(getPlatform())(node));
+        if (getRabbitHoleState(getPlatform()) && getRabbitHoleState(getPlatform()).active) {
+          markRabbitHoleWatched(getPlatform(), contentKey);
+        }
         rememberAllowedOnceKey(contentKey);
         pendingDoomPromptKeys[getPlatform()] = isSequentialDoomContext(getPlatform()) ? contentKey : "";
         clearPlatformFiltersForKey(getPlatform(), contentKey);
@@ -1850,6 +2082,7 @@
     if (action === "doom-yes") {
       if (node.dataset.psfGate === "facebook-reels-entry") {
         facebookReelsEntryGateAccepted = true;
+        activateRabbitHole("facebook");
         pendingDoomPromptKeys.facebook = "";
         removeFacebookReelsEntryGate();
         scheduleScan(20);
@@ -1857,6 +2090,8 @@
       }
 
       contentKey = contentKey || getContentKey(getPlatform(), node, getExtractor(getPlatform())(node));
+      activateRabbitHole(getPlatform());
+      markRabbitHoleWatched(getPlatform(), contentKey);
       rememberAllowedOnceKey(contentKey);
       pendingDoomPromptKeys[getPlatform()] = isSequentialDoomContext(getPlatform()) ? contentKey : "";
       clearPlatformFiltersForKey(getPlatform(), contentKey);
@@ -1864,8 +2099,37 @@
       return;
     }
 
+    if (action === "math-submit") {
+      var mathPlatform = button.dataset.psfPlatform || getPlatform();
+      var mathState = getRabbitHoleState(mathPlatform);
+      var mathInput = node.querySelector(".psf-math-answer");
+      var mathError = node.querySelector(".psf-math-error");
+      var answer = Number(mathInput && mathInput.value);
+      var challenge = mathState && mathState.challenge;
+
+      contentKey = contentKey || button.dataset.psfContentKey || getContentKey(mathPlatform, node, getExtractor(mathPlatform)(node));
+
+      if (challenge && challenge.contentKey === contentKey && Number.isFinite(answer) && answer === challenge.answer) {
+        passRabbitHoleMathChallenge(mathPlatform, contentKey);
+        clearFilter(node);
+        scheduleScan(20);
+        return;
+      }
+
+      if (mathError) {
+        mathError.textContent = "Nie ten wynik. Policz jeszcze raz.";
+      }
+
+      if (mathInput) {
+        mathInput.select();
+      }
+
+      return;
+    }
+
     if (action === "doom-no") {
       pendingDoomPromptKeys[getPlatform()] = "";
+      resetRabbitHole(getPlatform());
       location.assign(getPlatform() === "youtube" ? "https://www.youtube.com/" : "https://www.facebook.com/");
       return;
     }
@@ -1878,6 +2142,22 @@
     if (action === "block-creator") {
       addToList("blockedCreators", creator);
     }
+  }, true);
+
+  document.addEventListener("keydown", function handleMathEnter(event) {
+    if (event.key !== "Enter" || !event.target || !event.target.matches(".psf-math-answer")) {
+      return;
+    }
+
+    var overlay = event.target.closest(".psf-overlay");
+    var button = overlay && overlay.querySelector("button[data-psf-action='math-submit']");
+
+    if (!button) {
+      return;
+    }
+
+    event.preventDefault();
+    button.click();
   }, true);
 
   document.addEventListener("play", function handleBlockedPlay(event) {

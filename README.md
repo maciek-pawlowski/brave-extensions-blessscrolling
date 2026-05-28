@@ -10,6 +10,7 @@ bleSSScrolling is a Manifest V3 browser extension for people who want to reduce 
 - Blocks YouTube Shorts in `/shorts` and channel Shorts tabs when they do not match your whitelist.
 - Hides Facebook Reels from normal Facebook feeds and lists completely.
 - Blocks direct Facebook Reel pages with a friction screen before the next reel.
+- Adds a simple math challenge every 5 videos after you choose to continue doomscrolling.
 - Supports Instagram Reels as a best-effort web filter.
 - Lets you add allowed creators manually from the extension options.
 - Lets you add a creator from the blocking overlay with `Dodaj twórcę`.
