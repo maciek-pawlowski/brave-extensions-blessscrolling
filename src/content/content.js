@@ -8,6 +8,8 @@
   var allowedOnceKeys = [];
   var processedNodes = new WeakMap();
   var blockedVideos = new WeakMap();
+  var facebookReelsEntryGateAccepted = false;
+  var facebookReelsEntryBlockedNode = null;
   var pendingDoomPromptKeys = {
     facebook: "",
     youtube: ""
@@ -1495,6 +1497,83 @@
     });
   }
 
+  function getFacebookReelsEntryGateKey() {
+    return "facebook-reels-entry";
+  }
+
+  function removeFacebookReelsEntryGate() {
+    var gate = document.getElementById("psf-facebook-reels-entry-gate");
+
+    if (gate) {
+      gate.remove();
+    }
+
+    if (facebookReelsEntryBlockedNode) {
+      unblockPlayback(facebookReelsEntryBlockedNode);
+      facebookReelsEntryBlockedNode = null;
+    }
+  }
+
+  function createFacebookReelsEntryGate(contentKey) {
+    var gate = document.getElementById("psf-facebook-reels-entry-gate");
+    var overlay;
+    var title;
+    var actions;
+
+    if (gate || !document.body) {
+      return gate;
+    }
+
+    gate = document.createElement("div");
+    overlay = document.createElement("div");
+    title = document.createElement("h1");
+    actions = document.createElement("div");
+
+    gate.id = "psf-facebook-reels-entry-gate";
+    gate.className = "psf-filtered psf-covered psf-facebook-entry-gate";
+    gate.dataset.psfGate = "facebook-reels-entry";
+    gate.dataset.psfStatus = "block";
+    gate.dataset.psfReason = "Brama wejścia do Facebook Reels.";
+
+    overlay.className = "psf-overlay psf-overlay-doom";
+    title.className = "psf-overlay-title";
+    title.textContent = "Czy na pewno chcesz doomscrollować?";
+    actions.className = "psf-overlay-actions";
+
+    createDoomPromptActions(actions, contentKey);
+
+    overlay.appendChild(title);
+    overlay.appendChild(actions);
+    gate.appendChild(overlay);
+    document.body.appendChild(gate);
+
+    return gate;
+  }
+
+  function ensureFacebookReelsEntryGate(platform) {
+    var target;
+
+    if (platform !== "facebook" || !isFacebookReelWatchPage() || config.enabled === false) {
+      facebookReelsEntryGateAccepted = false;
+      removeFacebookReelsEntryGate();
+      return false;
+    }
+
+    if (facebookReelsEntryGateAccepted) {
+      removeFacebookReelsEntryGate();
+      return false;
+    }
+
+    target = findFacebookReelWatchContainer();
+    if (target) {
+      facebookReelsEntryBlockedNode = target;
+      blockPlayback(target);
+    }
+
+    createFacebookReelsEntryGate(getFacebookReelsEntryGateKey());
+    return true;
+  }
+
   function createOverlay(node, video, result, contentKey) {
     var existing = node.querySelector(":scope > .psf-overlay");
     var isDoomPrompt = shouldShowDoomPrompt(video, contentKey);
@@ -1683,6 +1762,9 @@
 
     if (platform === "facebook") {
       clearFacebookMessengerFilters();
+      if (ensureFacebookReelsEntryGate(platform)) {
+        return;
+      }
     }
 
     if ((platform === "facebook" || platform === "youtube") && !isSequentialDoomContext(platform)) {
@@ -1766,6 +1848,14 @@
     }
 
     if (action === "doom-yes") {
+      if (node.dataset.psfGate === "facebook-reels-entry") {
+        facebookReelsEntryGateAccepted = true;
+        pendingDoomPromptKeys.facebook = "";
+        removeFacebookReelsEntryGate();
+        scheduleScan(20);
+        return;
+      }
+
       contentKey = contentKey || getContentKey(getPlatform(), node, getExtractor(getPlatform())(node));
       rememberAllowedOnceKey(contentKey);
       pendingDoomPromptKeys[getPlatform()] = isSequentialDoomContext(getPlatform()) ? contentKey : "";
