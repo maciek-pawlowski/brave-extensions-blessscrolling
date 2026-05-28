@@ -985,7 +985,9 @@
     var creator = getFacebookCreator(node) ||
       getFacebookCreator(creatorContext) ||
       findFacebookNearbyCreator(node) ||
-      findFacebookNearbyCreator(creatorContext);
+      findFacebookNearbyCreator(creatorContext) ||
+      findFacebookNearbyTextCreator(node) ||
+      findFacebookNearbyTextCreator(creatorContext);
 
     return {
       platform: "facebook",
@@ -1061,6 +1063,9 @@
       "udostępnij",
       "facebook",
       "zobacz więcej",
+      "zobacz wiecej",
+      "wyświetl więcej",
+      "wyswietl wiecej",
       "see more"
     ];
   }
@@ -1071,6 +1076,33 @@
     return getFacebookActionWords().some(function isAction(word) {
       return normalized === matcher.normalizeText(word);
     });
+  }
+
+  function isFacebookCreatorTextCandidate(value) {
+    var text = cleanFacebookCreatorText(value);
+    var normalized = matcher.normalizeText(text);
+
+    if (!text || text.length > 80 || text.length < 2) {
+      return "";
+    }
+
+    if (isFacebookActionText(text)) {
+      return "";
+    }
+
+    if (/\b(\d+\s*(min|godz|h|d|dni)|wczoraj|yesterday|today|dzisiaj)\b/i.test(text)) {
+      return "";
+    }
+
+    if (/^(wyswietl wiecej|wyświetl więcej|zobacz wiecej|zobacz więcej|publiczne|public|komentarz|comment|share|udostepnij|udostępnij)$/i.test(normalized)) {
+      return "";
+    }
+
+    if (normalized.indexOf(" ") !== -1 && text.length > 48) {
+      return "";
+    }
+
+    return text;
   }
 
   function isFacebookProfileHref(href) {
@@ -1200,6 +1232,63 @@
       .filter(Boolean)
       .sort(function nearestFirst(left, right) {
         return left.distance - right.distance;
+      })
+      .map(function pickCreator(candidate) {
+        return candidate.creator;
+      })[0] || "";
+  }
+
+  function findFacebookNearbyTextCreator(node) {
+    var nodeRect;
+    var selectors = "strong, h2, h3, span[dir='auto']";
+    var candidates;
+
+    if (!node || !node.getBoundingClientRect) {
+      return "";
+    }
+
+    nodeRect = node.getBoundingClientRect();
+    candidates = Array.prototype.slice.call(document.querySelectorAll(selectors));
+
+    return candidates
+      .map(function toTextCandidate(element) {
+        var rect = element.getBoundingClientRect();
+        var creator = isFacebookCreatorTextCandidate(getNodeText(element));
+        var centerDelta = Math.abs((rect.left + rect.right) / 2 - (nodeRect.left + nodeRect.right) / 2);
+
+        if (!creator || !isVisibleRect(rect) || isFacebookMessengerSurface(element)) {
+          return null;
+        }
+
+        if (rect.width > 320 || rect.height > 70) {
+          return null;
+        }
+
+        if (element.closest && element.closest(".psf-overlay")) {
+          return null;
+        }
+
+        if (rect.bottom > nodeRect.top + 80 || rect.bottom < nodeRect.top - 520) {
+          return null;
+        }
+
+        if (centerDelta > Math.max(nodeRect.width, rect.width, 420)) {
+          return null;
+        }
+
+        return {
+          creator: creator,
+          distance: Math.abs(nodeRect.top - rect.bottom),
+          top: rect.top
+        };
+      })
+      .filter(Boolean)
+      .sort(function nearestFirst(left, right) {
+        if (left.distance !== right.distance) {
+          return left.distance - right.distance;
+        }
+
+        return left.top - right.top;
       })
       .map(function pickCreator(candidate) {
         return candidate.creator;
@@ -1801,8 +1890,23 @@
   function createOverlay(node, video, result, contentKey) {
     var existing = node.querySelector(":scope > .psf-overlay");
     var isDoomPrompt = shouldShowDoomPrompt(video, contentKey);
+    var overlayCreator = video && (video.creator || video.handle);
     if (existing) {
       existing.remove();
+    }
+
+    if (!isDoomPrompt && video && video.platform === "facebook" && !overlayCreator) {
+      overlayCreator = getFacebookCreator(node) ||
+        getFacebookCreator(findFacebookCreatorContext(node)) ||
+        findFacebookNearbyCreator(node) ||
+        findFacebookNearbyCreator(findFacebookCreatorContext(node)) ||
+        findFacebookNearbyTextCreator(node) ||
+        findFacebookNearbyTextCreator(findFacebookCreatorContext(node));
+
+      if (overlayCreator) {
+        video.creator = overlayCreator;
+        video.handle = overlayCreator;
+      }
     }
 
     var overlay = document.createElement("div");
@@ -1836,8 +1940,8 @@
       actions.appendChild(showButton);
     }
 
-    if (!isDoomPrompt && (video.creator || video.handle)) {
-      var creator = video.creator || video.handle;
+    if (!isDoomPrompt && overlayCreator) {
+      var creator = overlayCreator;
       var allowButton = document.createElement("button");
       var blockButton = document.createElement("button");
 
