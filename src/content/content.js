@@ -967,7 +967,11 @@
   }
 
   function extractFacebook(node) {
-    var creator = getFacebookCreator(node) || getFacebookCreator(findFacebookCreatorContext(node));
+    var creatorContext = findFacebookCreatorContext(node);
+    var creator = getFacebookCreator(node) ||
+      getFacebookCreator(creatorContext) ||
+      findFacebookNearbyCreator(node) ||
+      findFacebookNearbyCreator(creatorContext);
 
     return {
       platform: "facebook",
@@ -1029,9 +1033,8 @@
     return text;
   }
 
-  function getFacebookCreator(node) {
-    var links = node && node.querySelectorAll ? Array.prototype.slice.call(node.querySelectorAll("a[href], a[role='link']")) : [];
-    var actionWords = [
+  function getFacebookActionWords() {
+    return [
       "obserwuj",
       "follow",
       "lubię to",
@@ -1046,28 +1049,82 @@
       "zobacz więcej",
       "see more"
     ];
+  }
+
+  function isFacebookActionText(value) {
+    var normalized = matcher.normalizeText(value);
+
+    return getFacebookActionWords().some(function isAction(word) {
+      return normalized === matcher.normalizeText(word);
+    });
+  }
+
+  function isFacebookProfileHref(href) {
+    var url;
+    var path;
+
+    if (!href) {
+      return false;
+    }
+
+    try {
+      url = new URL(href, location.origin);
+    } catch (error) {
+      return false;
+    }
+
+    if (url.hostname.indexOf("facebook.com") === -1) {
+      return false;
+    }
+
+    path = url.pathname.replace(/\/+$/, "");
+
+    if (path === "/profile.php" && url.search.indexOf("id=") !== -1) {
+      return true;
+    }
+
+    if (/^\/(reel|watch|videos|video|photo|photos|hashtag|groups|events|marketplace|stories|messages|messenger|notifications|friends|gaming|pages|search|share|help|settings|privacy|ads|bookmarks|saved|memories|live|media|permalink\.php|story\.php)\b/.test(path)) {
+      return false;
+    }
+
+    return /^\/[^/?#]+$/.test(path);
+  }
+
+  function getFacebookCreatorFromLink(link) {
+    var text;
+    var href;
+
+    if (!link || isFacebookMessengerSurface(link)) {
+      return "";
+    }
+
+    text = cleanFacebookCreatorText(getNodeText(link) || link.getAttribute("aria-label"));
+    href = String(link.href || link.getAttribute("href") || "");
+
+    if (!text || text.length > 80 || (text.indexOf(" ") === -1 && text.length < 2)) {
+      return "";
+    }
+
+    if (isFacebookActionText(text)) {
+      return "";
+    }
+
+    if (href && !isFacebookProfileHref(href)) {
+      return "";
+    }
+
+    return text;
+  }
+
+  function getFacebookCreator(node) {
+    var links = node && node.querySelectorAll ? Array.prototype.slice.call(node.querySelectorAll("a[href], a[role='link']")) : [];
 
     for (var index = 0; index < links.length; index += 1) {
-      var link = links[index];
-      var text = cleanFacebookCreatorText(getNodeText(link) || link.getAttribute("aria-label"));
-      var normalized = matcher.normalizeText(text);
-      var href = String(link.href || link.getAttribute("href") || "");
+      var creator = getFacebookCreatorFromLink(links[index]);
 
-      if (!text || text.length > 80 || text.indexOf(" ") === -1 && text.length < 2) {
-        continue;
+      if (creator) {
+        return creator;
       }
-
-      if (actionWords.some(function isAction(word) {
-        return normalized === matcher.normalizeText(word);
-      })) {
-        continue;
-      }
-
-      if (/\/(reel|watch|videos|photo|hashtag|groups|events|marketplace)\b/.test(href)) {
-        continue;
-      }
-
-      return text;
     }
 
     if (node && node.querySelectorAll) {
@@ -1081,9 +1138,7 @@
           continue;
         }
 
-        if (actionWords.some(function isCandidateAction(word) {
-          return normalizedCandidate === matcher.normalizeText(word);
-        })) {
+        if (isFacebookActionText(normalizedCandidate)) {
           continue;
         }
 
@@ -1092,6 +1147,49 @@
     }
 
     return "";
+  }
+
+  function findFacebookNearbyCreator(node) {
+    var nodeRect;
+    var links;
+
+    if (!node || !node.getBoundingClientRect) {
+      return "";
+    }
+
+    nodeRect = node.getBoundingClientRect();
+    links = Array.prototype.slice.call(document.querySelectorAll("a[href], a[role='link']"));
+
+    return links
+      .map(function toCreatorCandidate(link) {
+        var rect = link.getBoundingClientRect();
+        var creator = getFacebookCreatorFromLink(link);
+        var centerDelta = Math.abs((rect.left + rect.right) / 2 - (nodeRect.left + nodeRect.right) / 2);
+
+        if (!creator || !isVisibleRect(rect) || isFacebookMessengerSurface(link)) {
+          return null;
+        }
+
+        if (rect.bottom > nodeRect.top + 60 || rect.bottom < nodeRect.top - 420) {
+          return null;
+        }
+
+        if (centerDelta > Math.max(nodeRect.width, rect.width, 360)) {
+          return null;
+        }
+
+        return {
+          creator: creator,
+          distance: Math.abs(nodeRect.top - rect.bottom)
+        };
+      })
+      .filter(Boolean)
+      .sort(function nearestFirst(left, right) {
+        return left.distance - right.distance;
+      })
+      .map(function pickCreator(candidate) {
+        return candidate.creator;
+      })[0] || "";
   }
 
   function extractInstagram(node) {
