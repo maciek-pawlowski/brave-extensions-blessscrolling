@@ -198,6 +198,88 @@
     return !!(node.querySelector && node.querySelector("a[href*='/reel/'], a[href*='/watch/reel/']"));
   }
 
+  function normalizeSignalText(value) {
+    if (matcher && matcher.normalizeText) {
+      return matcher.normalizeText(value);
+    }
+
+    return String(value || "").toLocaleLowerCase();
+  }
+
+  function hasMessengerSignalText(value) {
+    var text = normalizeSignalText(value);
+
+    return text.indexOf("messenger") !== -1 ||
+      text.indexOf("chat") !== -1 ||
+      text.indexOf("czat") !== -1 ||
+      text.indexOf("conversation") !== -1 ||
+      text.indexOf("rozmow") !== -1 ||
+      text.indexOf("wiadom") !== -1 ||
+      text.indexOf("/messages/") !== -1 ||
+      text.indexOf("messenger.com") !== -1;
+  }
+
+  function elementHasMessengerSignal(element) {
+    if (!element || !element.getAttribute) {
+      return false;
+    }
+
+    return hasMessengerSignalText([
+      element.getAttribute("aria-label"),
+      element.getAttribute("data-pagelet"),
+      element.getAttribute("data-testid"),
+      element.getAttribute("id"),
+      element.getAttribute("href"),
+      element.getAttribute("placeholder"),
+      element.getAttribute("title")
+    ].join(" "));
+  }
+
+  function subtreeHasMessengerSignal(node) {
+    var candidates;
+
+    if (!node || !node.querySelectorAll) {
+      return false;
+    }
+
+    candidates = Array.prototype.slice.call(node.querySelectorAll("[aria-label], [data-pagelet], [data-testid], [id], a[href], textarea, [role='textbox'], [contenteditable='true']")).slice(0, 80);
+
+    return candidates.some(elementHasMessengerSignal);
+  }
+
+  function isFacebookMessagesPath() {
+    return /^\/messages(\/|$)|^\/messenger(\/|$)/.test(location.pathname);
+  }
+
+  function isFacebookMessengerSurface(node) {
+    var current = node;
+    var dialog = null;
+    var steps = 0;
+
+    if (!node || isFacebookReelWatchPage()) {
+      return false;
+    }
+
+    if (isFacebookMessagesPath()) {
+      return true;
+    }
+
+    while (current && current !== document.body && steps < 10) {
+      if (elementHasMessengerSignal(current)) {
+        return true;
+      }
+
+      if (!dialog && current.matches && current.matches("[role='dialog'], [aria-modal='true']")) {
+        dialog = current;
+      }
+
+      current = current.parentElement;
+      steps += 1;
+    }
+
+    return !!(dialog && subtreeHasMessengerSignal(dialog));
+  }
+
   function getYouTubeShortsCard(anchor) {
     var card = closestAny(anchor, [
       "ytd-reel-video-renderer",
@@ -491,6 +573,10 @@
       return true;
     }
 
+    if (isFacebookMessengerSurface(node)) {
+      return true;
+    }
+
     if (node.closest && node.closest("[role='banner'], [role='navigation'], form[role='search']")) {
       return true;
     }
@@ -514,7 +600,7 @@
   }
 
   function shouldUseFacebookCandidate(node) {
-    return !!(node && (isFacebookActiveReelNode(node) || isFacebookInlineReelsContainer(node) || (!isDocumentScaleContainer(node) && (isFacebookReelCard(node) || !isFacebookChromeOrPreview(node)))));
+    return !!(node && !isFacebookMessengerSurface(node) && (isFacebookActiveReelNode(node) || isFacebookInlineReelsContainer(node) || (!isDocumentScaleContainer(node) && (isFacebookReelCard(node) || !isFacebookChromeOrPreview(node)))));
   }
 
   function isFacebookReelCard(node) {
@@ -522,7 +608,7 @@
     var hasReelSignal;
     var hasReelLink;
 
-    if (!node || !node.getBoundingClientRect || isDocumentScaleContainer(node)) {
+    if (!node || !node.getBoundingClientRect || isDocumentScaleContainer(node) || isFacebookMessengerSurface(node)) {
       return false;
     }
 
@@ -539,6 +625,10 @@
     }
 
     if (!hasReelSignal) {
+      return false;
+    }
+
+    if (!hasReelLink && !isFacebookReelWatchPage()) {
       return false;
     }
 
@@ -560,7 +650,7 @@
     var rect;
     var reelLinkCount;
 
-    if (!node || !node.getBoundingClientRect || isFacebookReelWatchPage() || isFacebookActiveReelNode(node) || isDocumentScaleContainer(node)) {
+    if (!node || !node.getBoundingClientRect || isFacebookReelWatchPage() || isFacebookActiveReelNode(node) || isDocumentScaleContainer(node) || isFacebookMessengerSurface(node)) {
       return false;
     }
 
@@ -1299,6 +1389,14 @@
     }
   }
 
+  function clearFacebookMessengerFilters() {
+    Array.prototype.slice.call(document.querySelectorAll(".psf-filtered")).forEach(function clearMessengerNode(node) {
+      if (isFacebookMessengerSurface(node)) {
+        clearFilter(node);
+      }
+    });
+  }
+
   function createOverlay(node, video, result, contentKey) {
     var existing = node.querySelector(":scope > .psf-overlay");
     var isDoomPrompt = shouldShowDoomPrompt(video, contentKey);
@@ -1425,6 +1523,11 @@
       return;
     }
 
+    if (video && video.platform === "facebook" && isFacebookMessengerSurface(node)) {
+      clearFilter(node);
+      return;
+    }
+
     if (video && video.platform === "facebook" && !shouldUseFacebookCandidate(node)) {
       clearFilter(node);
       return;
@@ -1479,6 +1582,10 @@
     var platform = getPlatform();
     var extractor = getExtractor(platform);
     var candidates = findCandidates(platform);
+
+    if (platform === "facebook") {
+      clearFacebookMessengerFilters();
+    }
 
     if ((platform === "facebook" || platform === "youtube") && !isSequentialDoomContext(platform)) {
       pendingDoomPromptKeys[platform] = "";
