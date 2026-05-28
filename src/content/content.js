@@ -459,6 +459,26 @@
     return target;
   }
 
+  function findFacebookReelWatchContainer() {
+    var target;
+
+    if (!isFacebookReelWatchPage()) {
+      return null;
+    }
+
+    target = document.querySelector("[role='dialog']") ||
+      document.querySelector("[aria-modal='true']") ||
+      document.querySelector("[role='main']") ||
+      document.querySelector("main");
+
+    if (!target || target === document.body || target === document.documentElement) {
+      return null;
+    }
+
+    target.dataset.psfFacebookActiveReel = "true";
+    return target;
+  }
+
   function isFacebookChromeOrPreview(node) {
     var rect;
     var reelLinks;
@@ -1110,10 +1130,16 @@
   function findFacebookCandidates() {
     var nodes = [];
     var activeReelPlayer;
+    var reelWatchContainer;
 
     activeReelPlayer = findActiveFacebookReelPlayer();
     if (activeReelPlayer) {
       nodes.push(activeReelPlayer);
+    } else {
+      reelWatchContainer = findFacebookReelWatchContainer();
+      if (reelWatchContainer) {
+        nodes.push(reelWatchContainer);
+      }
     }
 
     Array.prototype.slice.call(document.querySelectorAll("a[href*='/reel/'], a[href*='/watch/reel/']")).forEach(function collect(anchor) {
@@ -1477,6 +1503,9 @@
 
       previous = processedNodes.get(node);
       if (previous && previous.config === config && previous.textFingerprint === textFingerprint) {
+        if (node.classList.contains("psf-filtered")) {
+          blockPlayback(node);
+        }
         return;
       }
 
