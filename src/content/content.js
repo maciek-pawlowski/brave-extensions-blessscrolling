@@ -1737,8 +1737,33 @@
     var input = document.createElement("input");
     var button = document.createElement("button");
     var error = document.createElement("div");
+    var challengeAnswer = challenge && Number.isFinite(Number(challenge.answer)) ? String(challenge.answer) : "";
+    var challengeQuestion = challenge && challenge.question ? String(challenge.question) : "";
 
     if (existing && existing.classList.contains("psf-overlay-math") && existing.dataset.psfContentKey === String(contentKey || "")) {
+      var existingButton = existing.querySelector("button[data-psf-action='math-submit']");
+      var existingQuestion = existing.querySelector(".psf-math-question");
+
+      if (challengeAnswer) {
+        existing.dataset.psfMathAnswer = challengeAnswer;
+
+        if (existingButton) {
+          existingButton.dataset.psfMathAnswer = challengeAnswer;
+        }
+      }
+
+      if (challengeQuestion) {
+        existing.dataset.psfMathQuestion = challengeQuestion;
+
+        if (existingQuestion) {
+          existingQuestion.textContent = challengeQuestion;
+        }
+
+        if (existingButton) {
+          existingButton.dataset.psfMathQuestion = challengeQuestion;
+        }
+      }
+
       return;
     }
 
@@ -1748,10 +1773,12 @@
 
     overlay.className = "psf-overlay psf-overlay-math";
     overlay.dataset.psfContentKey = contentKey || "";
+    overlay.dataset.psfMathAnswer = challengeAnswer;
+    overlay.dataset.psfMathQuestion = challengeQuestion;
     title.className = "psf-overlay-title";
     title.textContent = "Krótki test przytomności";
     equation.className = "psf-math-question";
-    equation.textContent = challenge.question;
+    equation.textContent = challengeQuestion;
     actions.className = "psf-overlay-actions psf-math-actions";
 
     input.className = "psf-math-answer";
@@ -1764,6 +1791,8 @@
     button.dataset.psfAction = "math-submit";
     button.dataset.psfPlatform = platform;
     button.dataset.psfContentKey = contentKey || "";
+    button.dataset.psfMathAnswer = challengeAnswer;
+    button.dataset.psfMathQuestion = challengeQuestion;
     button.textContent = "Odblokuj wideo";
 
     error.className = "psf-math-error";
@@ -2258,14 +2287,24 @@
     if (action === "math-submit") {
       var mathPlatform = button.dataset.psfPlatform || getPlatform();
       var mathState = getRabbitHoleState(mathPlatform);
+      var mathOverlay = button.closest(".psf-overlay-math");
       var mathInput = node.querySelector(".psf-math-answer");
       var mathError = node.querySelector(".psf-math-error");
-      var answer = Number(mathInput && mathInput.value);
+      var rawAnswer = String(mathInput && mathInput.value || "").trim().replace(",", ".");
+      var answer = Number(rawAnswer);
       var challenge = mathState && mathState.challenge;
+      var expectedAnswerSource = button.dataset.psfMathAnswer ||
+        (mathOverlay && mathOverlay.dataset.psfMathAnswer) ||
+        (challenge && String(challenge.answer)) ||
+        "";
+      var expectedAnswer = Number(expectedAnswerSource);
 
-      contentKey = contentKey || button.dataset.psfContentKey || getContentKey(mathPlatform, node, getExtractor(mathPlatform)(node));
+      contentKey = button.dataset.psfContentKey ||
+        (mathOverlay && mathOverlay.dataset.psfContentKey) ||
+        contentKey ||
+        getContentKey(mathPlatform, node, getExtractor(mathPlatform)(node));
 
-      if (challenge && challenge.contentKey === contentKey && Number.isFinite(answer) && answer === challenge.answer) {
+      if (rawAnswer !== "" && Number.isFinite(answer) && Number.isFinite(expectedAnswer) && answer === expectedAnswer) {
         passRabbitHoleMathChallenge(mathPlatform, contentKey);
         clearFilter(node);
         scheduleScan(20);
