@@ -785,7 +785,6 @@
         location.search,
         video && video.creator,
         video && video.handle,
-        getFacebookVideoSource(node),
         getRabbitHoleContentKeySuffix("facebook"),
         getNodeText(node).slice(0, 700)
       ].join(" ")).slice(0, 1000);
@@ -861,6 +860,14 @@
 
   function isAllowedOnceKey(key) {
     return !!key && allowedOnceKeys.indexOf(key) !== -1;
+  }
+
+  function rememberAllowedOnceNode(node, platform) {
+    if (!node) {
+      return;
+    }
+
+    allowedOnce.set(node, getNodeFingerprint(node, getExtractor(platform || getPlatform())(node)));
   }
 
   function clearFacebookFiltersForKey(key) {
@@ -1047,6 +1054,7 @@
 
     text = text
       .split(" · ")[0]
+      .replace(/\s+(prowadził\(a\)|prowadzil\(a\)|prowadził|prowadzil|prowadziła|prowadzila|prowadzi|was live|is live|went live|transmitował\(a\)|transmitowal\(a\)|transmitował|transmitowal).*$/i, "")
       .replace(/\b(Obserwuj|Follow)\b.*$/i, "")
       .replace(/\b(\d+\s*(min|godz|h|d|dni)|wczoraj|yesterday|today|dzisiaj)\b.*$/i, "")
       .trim();
@@ -2212,11 +2220,12 @@
         if (getRabbitHoleState(getPlatform()) && getRabbitHoleState(getPlatform()).active) {
           markRabbitHoleWatched(getPlatform(), contentKey);
         }
+        rememberAllowedOnceNode(node, getPlatform());
         rememberAllowedOnceKey(contentKey);
         pendingDoomPromptKeys[getPlatform()] = isSequentialDoomContext(getPlatform()) ? contentKey : "";
         clearPlatformFiltersForKey(getPlatform(), contentKey);
       } else {
-        allowedOnce.set(node, getNodeFingerprint(node, getExtractor(getPlatform())(node)));
+        rememberAllowedOnceNode(node, getPlatform());
       }
       clearFilter(node);
       return;
@@ -2238,6 +2247,7 @@
       activateRabbitHole(getPlatform());
       getRabbitHoleState(getPlatform()).lastNavigationAt = 0;
       markRabbitHoleWatched(getPlatform(), contentKey);
+      rememberAllowedOnceNode(node, getPlatform());
       rememberAllowedOnceKey(contentKey);
       pendingDoomPromptKeys[getPlatform()] = isSequentialDoomContext(getPlatform()) ? contentKey : "";
       clearPlatformFiltersForKey(getPlatform(), contentKey);
