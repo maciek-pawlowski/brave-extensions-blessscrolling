@@ -113,6 +113,16 @@
   padding: 24px !important;
 }
 
+.psf-overlay-math .psf-overlay-title {
+  color: #ffffff !important;
+  font-size: 22px !important;
+  font-weight: 900 !important;
+  line-height: 1.2 !important;
+  margin: 0 !important;
+  opacity: 1 !important;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.72) !important;
+}
+
 .psf-overlay-title {
   font-size: 15px !important;
   font-weight: 700 !important;

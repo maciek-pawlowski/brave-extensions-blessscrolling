@@ -1712,6 +1712,33 @@
     };
   }
 
+  function getDisplayedMathAnswer(questionText) {
+    var match = String(questionText || "").match(/(-?\d+)\s*([+\-×x*])\s*(-?\d+)/);
+    var left;
+    var right;
+
+    if (!match) {
+      return null;
+    }
+
+    left = Number(match[1]);
+    right = Number(match[3]);
+
+    if (!Number.isFinite(left) || !Number.isFinite(right)) {
+      return null;
+    }
+
+    if (match[2] === "+") {
+      return left + right;
+    }
+
+    if (match[2] === "-") {
+      return left - right;
+    }
+
+    return left * right;
+  }
+
   function getRabbitHoleChallenge(platform, contentKey) {
     var state = getRabbitHoleState(platform);
 
@@ -1740,11 +1767,19 @@
     var challengeAnswer = challenge && Number.isFinite(Number(challenge.answer)) ? String(challenge.answer) : "";
     var challengeQuestion = challenge && challenge.question ? String(challenge.question) : "";
 
-    if (existing && existing.classList.contains("psf-overlay-math") && existing.dataset.psfContentKey === String(contentKey || "")) {
+    if (existing && existing.classList.contains("psf-overlay-math")) {
       var existingButton = existing.querySelector("button[data-psf-action='math-submit']");
       var existingQuestion = existing.querySelector(".psf-math-question");
 
-      if (challengeAnswer) {
+      if (!existing.dataset.psfContentKey && contentKey) {
+        existing.dataset.psfContentKey = contentKey;
+
+        if (existingButton) {
+          existingButton.dataset.psfContentKey = contentKey;
+        }
+      }
+
+      if (!existing.dataset.psfMathAnswer && challengeAnswer) {
         existing.dataset.psfMathAnswer = challengeAnswer;
 
         if (existingButton) {
@@ -1752,10 +1787,10 @@
         }
       }
 
-      if (challengeQuestion) {
+      if (!existing.dataset.psfMathQuestion && challengeQuestion) {
         existing.dataset.psfMathQuestion = challengeQuestion;
 
-        if (existingQuestion) {
+        if (existingQuestion && !existingQuestion.textContent) {
           existingQuestion.textContent = challengeQuestion;
         }
 
@@ -2288,16 +2323,18 @@
       var mathPlatform = button.dataset.psfPlatform || getPlatform();
       var mathState = getRabbitHoleState(mathPlatform);
       var mathOverlay = button.closest(".psf-overlay-math");
+      var mathQuestion = mathOverlay && mathOverlay.querySelector(".psf-math-question");
       var mathInput = node.querySelector(".psf-math-answer");
       var mathError = node.querySelector(".psf-math-error");
       var rawAnswer = String(mathInput && mathInput.value || "").trim().replace(",", ".");
       var answer = Number(rawAnswer);
       var challenge = mathState && mathState.challenge;
-      var expectedAnswerSource = button.dataset.psfMathAnswer ||
+      var displayedAnswer = getDisplayedMathAnswer(mathQuestion && mathQuestion.textContent);
+      var storedAnswer = Number(button.dataset.psfMathAnswer ||
         (mathOverlay && mathOverlay.dataset.psfMathAnswer) ||
         (challenge && String(challenge.answer)) ||
-        "";
-      var expectedAnswer = Number(expectedAnswerSource);
+        "");
+      var expectedAnswer = Number.isFinite(displayedAnswer) ? displayedAnswer : storedAnswer;
 
       contentKey = button.dataset.psfContentKey ||
         (mathOverlay && mathOverlay.dataset.psfContentKey) ||
