@@ -242,6 +242,8 @@
   function isFacebookVerticalMediaTile(element) {
     var rect;
     var style;
+    var role;
+    var computedStyle;
 
     if (!element || !element.getBoundingClientRect) {
       return false;
@@ -265,12 +267,27 @@
       return true;
     }
 
-    if (element.matches && element.matches("a[href]") && element.querySelector("img, video, [style*='background-image']")) {
+    if (element.matches && element.matches("a[href], [role='link'], [role='button']") && element.querySelector("img, video, [style*='background-image']")) {
       return true;
     }
 
     style = element.getAttribute && element.getAttribute("style");
-    return !!(style && style.indexOf("background-image") !== -1);
+    if (style && style.indexOf("background-image") !== -1) {
+      return true;
+    }
+
+    try {
+      computedStyle = window.getComputedStyle(element);
+    } catch (error) {
+      computedStyle = null;
+    }
+
+    if (computedStyle && computedStyle.backgroundImage && computedStyle.backgroundImage !== "none") {
+      return true;
+    }
+
+    role = element.getAttribute && element.getAttribute("role");
+    return element.tagName === "A" || role === "link" || role === "button";
   }
 
   function getFacebookVerticalMediaTileCount(node) {
@@ -282,7 +299,7 @@
       return 0;
     }
 
-    candidates = Array.prototype.slice.call(node.querySelectorAll("a[href], img, video, [style*='background-image']")).slice(0, 80);
+    candidates = Array.prototype.slice.call(node.querySelectorAll("a, [role='link'], [role='button'], img, video, [style], div")).slice(0, 220);
     candidates.some(function countTile(candidate) {
       var rect;
       var centerX;
@@ -320,6 +337,16 @@
     }
 
     return hasFacebookReelsLabel(node) && getFacebookVerticalMediaTileCount(node) >= 2;
+  }
+
+  function isPreviouslyHiddenFacebookInlineReels(node) {
+    return !!(node &&
+      node.classList &&
+      node.classList.contains("psf-filtered") &&
+      node.classList.contains("psf-hidden") &&
+      node.dataset &&
+      node.dataset.psfPlatform === "facebook" &&
+      node.dataset.psfReason === "Rolki ukryte na Facebooku.");
   }
 
   function normalizeSignalText(value) {
@@ -783,6 +810,10 @@
       return false;
     }
 
+    if (isPreviouslyHiddenFacebookInlineReels(node)) {
+      return true;
+    }
+
     if (!hasFacebookInlineReelsSignal(node)) {
       return false;
     }
@@ -810,6 +841,41 @@
     return !!(node.matches && node.matches("[role='article'], [aria-posinset], [data-pagelet]"));
   }
 
+  function findFacebookReelsShelfFromLabel(seed) {
+    var node = seed;
+    var steps = 0;
+
+    while (node && node !== document.body && steps < 14) {
+      var rect;
+
+      if (isPreviouslyHiddenFacebookInlineReels(node)) {
+        return node;
+      }
+
+      if (node.getBoundingClientRect &&
+        !isDocumentScaleContainer(node) &&
+        !isFacebookMessengerSurface(node) &&
+        !(node.closest && node.closest("[role='banner'], [role='navigation'], form[role='search']")) &&
+        hasFacebookReelsLabel(node)) {
+        rect = node.getBoundingClientRect();
+
+        if (isVisibleRect(rect) &&
+          rect.width >= 260 &&
+          rect.width <= Math.max(760, window.innerWidth * 0.92) &&
+          rect.height >= 160 &&
+          rect.height <= Math.max(760, window.innerHeight * 0.85) &&
+          getFacebookVerticalMediaTileCount(node) >= 2) {
+          return node;
+        }
+      }
+
+      node = node.parentElement;
+      steps += 1;
+    }
+
+    return null;
+  }
+
   function shouldHideFacebookInlineReels(node) {
     return isFacebookInlineReelsContainer(node);
   }
@@ -818,6 +884,11 @@
     var node = seed;
     var best = null;
     var steps = 0;
+    var shelf = findFacebookReelsShelfFromLabel(seed);
+
+    if (shelf) {
+      return shelf;
+    }
 
     while (node && node !== document.body && steps < 12) {
       if (isFacebookInlineReelsContainer(node)) {
@@ -1616,14 +1687,14 @@
       }
     });
 
-    Array.prototype.slice.call(document.querySelectorAll("h2, h3, span[dir='auto'], [aria-label], [title]")).slice(0, 240).forEach(function collectReelsLabel(label) {
+    Array.prototype.slice.call(document.querySelectorAll("h2, h3, [role='heading'], span[dir='auto'], strong, b, [aria-label], [title]")).slice(0, 1200).forEach(function collectReelsLabel(label) {
       var candidate;
 
       if (!hasFacebookReelsLabel(label)) {
         return;
       }
 
-      candidate = findFacebookInlineReelsContainer(label) || closestAny(label, ["[role='article']", "[aria-posinset]", "[data-pagelet]"]);
+      candidate = findFacebookReelsShelfFromLabel(label) || findFacebookInlineReelsContainer(label) || closestAny(label, ["[role='article']", "[aria-posinset]", "[data-pagelet]"]);
       if (shouldUseFacebookCandidate(candidate)) {
         nodes.push(candidate);
       }
@@ -1836,7 +1907,8 @@
   function nodeMatchesAnyCandidate(node, candidates) {
     return candidates.some(function matchesCandidate(candidate) {
       return node === candidate ||
-        (candidate.contains && candidate.contains(node));
+        (candidate.contains && candidate.contains(node)) ||
+        (node.contains && node.contains(candidate));
     });
   }
 
@@ -1867,6 +1939,10 @@
       }
 
       if (nodeMatchesAnyCandidate(node, candidates)) {
+        return;
+      }
+
+      if (platform === "facebook" && isPreviouslyHiddenFacebookInlineReels(node)) {
         return;
       }
 

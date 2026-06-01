@@ -20,7 +20,7 @@ The extension does not control YouTube, Facebook, or Instagram recommendation al
 ## Installation In Brave Or Chromium
 
 1. Open the latest GitHub Release.
-2. Download `bleSSScrolling-v0.2.4.zip`.
+2. Download `bleSSScrolling-v0.2.5.zip`.
 3. Unzip the downloaded file.
 4. Open `brave://extensions` in Brave, or `chrome://extensions` in Chrome/Chromium.
 5. Turn on `Developer mode`.

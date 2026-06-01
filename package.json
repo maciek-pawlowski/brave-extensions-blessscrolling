@@ -1,6 +1,6 @@
 {
   "name": "blessscrolling",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "private": true,
   "description": "Local Manifest V3 extension for filtering Shorts/Reels in Brave.",
   "scripts": {
