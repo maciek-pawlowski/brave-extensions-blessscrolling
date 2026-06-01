@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "bleSSScrolling",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Local Brave/Chromium filter that hides Shorts and Reels to save you from doomscroll.",
   "permissions": [
     "storage"
