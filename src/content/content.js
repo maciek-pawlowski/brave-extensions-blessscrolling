@@ -223,6 +223,105 @@
     return !!(node.querySelector && node.querySelector("a[href*='/reel/'], a[href*='/watch/reel/']"));
   }
 
+  function hasFacebookReelsLabel(node) {
+    var text;
+
+    if (!node) {
+      return false;
+    }
+
+    text = normalizeSignalText([
+      node.getAttribute && node.getAttribute("aria-label"),
+      node.getAttribute && node.getAttribute("title"),
+      getNodeText(node).slice(0, 420)
+    ].join(" "));
+
+    return /\b(rolki|reels)\b/.test(text);
+  }
+
+  function isFacebookVerticalMediaTile(element) {
+    var rect;
+    var style;
+
+    if (!element || !element.getBoundingClientRect) {
+      return false;
+    }
+
+    if (element.closest && (element.closest(".psf-overlay") || element.closest("[role='banner'], [role='navigation'], form[role='search']"))) {
+      return false;
+    }
+
+    rect = element.getBoundingClientRect();
+    if (!isVisibleRect(rect) ||
+      rect.width < 70 ||
+      rect.width > 300 ||
+      rect.height < 110 ||
+      rect.height > 520 ||
+      rect.height < rect.width * 1.08) {
+      return false;
+    }
+
+    if (element.matches && element.matches("img, video")) {
+      return true;
+    }
+
+    if (element.matches && element.matches("a[href]") && element.querySelector("img, video, [style*='background-image']")) {
+      return true;
+    }
+
+    style = element.getAttribute && element.getAttribute("style");
+    return !!(style && style.indexOf("background-image") !== -1);
+  }
+
+  function getFacebookVerticalMediaTileCount(node) {
+    var candidates;
+    var tiles = [];
+    var count = 0;
+
+    if (!node || !node.querySelectorAll) {
+      return 0;
+    }
+
+    candidates = Array.prototype.slice.call(node.querySelectorAll("a[href], img, video, [style*='background-image']")).slice(0, 80);
+    candidates.some(function countTile(candidate) {
+      var rect;
+      var centerX;
+      var centerY;
+      var duplicate;
+
+      if (isFacebookVerticalMediaTile(candidate)) {
+        rect = candidate.getBoundingClientRect();
+        centerX = (rect.left + rect.right) / 2;
+        centerY = (rect.top + rect.bottom) / 2;
+        duplicate = tiles.some(function hasSameCenter(tile) {
+          return Math.abs(tile.centerX - centerX) < 16 && Math.abs(tile.centerY - centerY) < 16;
+        });
+
+        if (duplicate) {
+          return false;
+        }
+
+        tiles.push({
+          centerX: centerX,
+          centerY: centerY
+        });
+        count += 1;
+      }
+
+      return count >= 4;
+    });
+
+    return count;
+  }
+
+  function hasFacebookInlineReelsSignal(node) {
+    if (hasFacebookReelLink(node)) {
+      return true;
+    }
+
+    return hasFacebookReelsLabel(node) && getFacebookVerticalMediaTileCount(node) >= 2;
+  }
+
   function normalizeSignalText(value) {
     if (matcher && matcher.normalizeText) {
       return matcher.normalizeText(value);
@@ -674,6 +773,7 @@
   function isFacebookInlineReelsContainer(node) {
     var rect;
     var reelLinkCount;
+    var verticalTileCount;
 
     if (!node || !node.getBoundingClientRect || isFacebookReelWatchPage() || isFacebookActiveReelNode(node) || isDocumentScaleContainer(node) || isFacebookMessengerSurface(node)) {
       return false;
@@ -683,7 +783,7 @@
       return false;
     }
 
-    if (!hasFacebookReelLink(node)) {
+    if (!hasFacebookInlineReelsSignal(node)) {
       return false;
     }
 
@@ -697,8 +797,13 @@
     }
 
     reelLinkCount = node.querySelectorAll ? node.querySelectorAll("a[href*='/reel/'], a[href*='/watch/reel/']").length : 1;
+    verticalTileCount = getFacebookVerticalMediaTileCount(node);
 
     if (reelLinkCount > 1 && rect.height <= 760) {
+      return true;
+    }
+
+    if (hasFacebookReelsLabel(node) && verticalTileCount >= 2 && rect.height <= 760) {
       return true;
     }
 
@@ -1500,6 +1605,25 @@
       var inlineReelsContainer = findFacebookInlineReelsContainer(anchor);
       var reelCard = findFacebookReelCard(anchor);
       var candidate = inlineReelsContainer || reelCard || closestAny(anchor, ["[role='article']", "[aria-posinset]", "[data-pagelet]"]) || climbToUsefulContainer(anchor);
+      if (shouldUseFacebookCandidate(candidate)) {
+        nodes.push(candidate);
+      }
+    });
+
+    Array.prototype.slice.call(document.querySelectorAll("[role='article'], [aria-posinset], [data-pagelet]")).forEach(function collectInlineReelsContainer(container) {
+      if (isFacebookInlineReelsContainer(container)) {
+        nodes.push(container);
+      }
+    });
+
+    Array.prototype.slice.call(document.querySelectorAll("h2, h3, span[dir='auto'], [aria-label], [title]")).slice(0, 240).forEach(function collectReelsLabel(label) {
+      var candidate;
+
+      if (!hasFacebookReelsLabel(label)) {
+        return;
+      }
+
+      candidate = findFacebookInlineReelsContainer(label) || closestAny(label, ["[role='article']", "[aria-posinset]", "[data-pagelet]"]);
       if (shouldUseFacebookCandidate(candidate)) {
         nodes.push(candidate);
       }
