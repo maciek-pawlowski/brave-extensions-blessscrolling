@@ -30,11 +30,11 @@
   overflow: hidden !important;
 }
 
-.psf-youtube-card.psf-covered > :not(.psf-overlay) {
+.psf-youtube-card.psf-covered.psf-has-overlay > :not(.psf-overlay) {
   display: none !important;
 }
 
-.psf-facebook-reel-card.psf-covered > :not(.psf-overlay) {
+.psf-facebook-reel-card.psf-covered.psf-has-overlay > :not(.psf-overlay) {
   display: none !important;
 }
 
@@ -56,6 +56,13 @@
   position: absolute !important;
   text-align: center !important;
   z-index: 2147483647 !important;
+}
+
+.psf-overlay,
+.psf-overlay * {
+  filter: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
 .psf-facebook-entry-gate {
@@ -83,7 +90,10 @@
   background: #11161d !important;
   border: 0 !important;
   border-radius: 8px !important;
+  display: flex !important;
+  height: 100% !important;
   inset: auto !important;
+  justify-content: center !important;
   min-height: 100% !important;
   padding: 20px !important;
   position: static !important;
@@ -141,8 +151,11 @@
 }
 
 .psf-youtube-card .psf-overlay-title {
-  font-size: 13px !important;
-  max-width: 190px !important;
+  color: #ffffff !important;
+  font-size: 22px !important;
+  font-weight: 900 !important;
+  max-width: min(360px, calc(100% - 24px)) !important;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.72) !important;
 }
 
 .psf-facebook-reel-card .psf-overlay-title {
@@ -205,8 +218,9 @@
 }
 
 .psf-youtube-card .psf-overlay-reason {
-  font-size: 11px !important;
-  max-width: 180px !important;
+  color: #d7dbe3 !important;
+  font-size: 14px !important;
+  max-width: min(340px, calc(100% - 24px)) !important;
 }
 
 .psf-facebook-reel-card .psf-overlay-reason {
@@ -244,9 +258,9 @@
 }
 
 .psf-youtube-card .psf-overlay button {
-  font-size: 11px !important;
-  min-height: 28px !important;
-  padding: 7px 9px !important;
+  font-size: 14px !important;
+  min-height: 38px !important;
+  padding: 10px 14px !important;
 }
 
 .psf-facebook-reel-card .psf-overlay button {

@@ -1618,7 +1618,7 @@
   }
 
   function clearFilter(node) {
-    node.classList.remove("psf-filtered", "psf-covered", "psf-hidden", "psf-youtube-card", "psf-facebook-reel-card");
+    node.classList.remove("psf-filtered", "psf-covered", "psf-hidden", "psf-youtube-card", "psf-facebook-reel-card", "psf-has-overlay");
     node.removeAttribute("data-psf-status");
     node.removeAttribute("data-psf-reason");
     unblockPlayback(node);
@@ -1867,11 +1867,13 @@
         }
       }
 
+      node.classList.add("psf-has-overlay");
       return;
     }
 
     if (existing) {
       existing.remove();
+      node.classList.remove("psf-has-overlay");
     }
 
     overlay.className = "psf-overlay psf-overlay-math";
@@ -1908,6 +1910,7 @@
     overlay.appendChild(actions);
     overlay.appendChild(error);
     node.appendChild(overlay);
+    node.classList.add("psf-has-overlay");
 
     window.setTimeout(function focusMathInput() {
       input.focus();
@@ -2072,6 +2075,7 @@
     var overlayCreator = video && (video.creator || video.handle);
     if (existing) {
       existing.remove();
+      node.classList.remove("psf-has-overlay");
     }
 
     if (!isDoomPrompt && video && video.platform === "facebook" && !overlayCreator) {
@@ -2137,6 +2141,8 @@
     }
     overlay.appendChild(actions);
     node.appendChild(overlay);
+    node.classList.add("psf-has-overlay");
+    return true;
   }
 
   function shouldShowFacebookDoomPrompt(video, contentKey) {
@@ -2227,7 +2233,7 @@
         homeOverlay.remove();
       }
       node.classList.add("psf-hidden");
-      node.classList.remove("psf-covered");
+      node.classList.remove("psf-covered", "psf-has-overlay");
       return;
     }
 
@@ -2237,17 +2243,20 @@
         facebookOverlay.remove();
       }
       node.classList.add("psf-hidden");
-      node.classList.remove("psf-covered");
+      node.classList.remove("psf-covered", "psf-has-overlay");
       return;
     }
 
     if (config.overlayMode) {
-      node.classList.add("psf-covered");
       node.classList.remove("psf-hidden");
-      createOverlay(node, video, result, contentKey);
+      if (createOverlay(node, video, result, contentKey)) {
+        node.classList.add("psf-covered");
+      } else {
+        node.classList.remove("psf-covered", "psf-has-overlay");
+      }
     } else {
       node.classList.add("psf-hidden");
-      node.classList.remove("psf-covered");
+      node.classList.remove("psf-covered", "psf-has-overlay");
     }
   }
 
