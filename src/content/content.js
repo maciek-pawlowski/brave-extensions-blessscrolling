@@ -4,6 +4,7 @@
   var defaults = window.ShortMindDefaults;
   var matcher = window.ShortMindMatcher;
   var scanTimer = 0;
+  var MATH_BYPASS_MS = 10 * 60 * 1000;
   var allowedOnce = new WeakMap();
   var allowedOnceKeys = [];
   var processedNodes = new WeakMap();
@@ -15,6 +16,9 @@
       active: false,
       watchedKeys: [],
       challenge: null,
+      mathBypassContentKey: "",
+      mathBypassPageKey: "",
+      mathBypassUntil: 0,
       navigationSerial: 0,
       lastNavigationAt: 0
     },
@@ -22,6 +26,9 @@
       active: false,
       watchedKeys: [],
       challenge: null,
+      mathBypassContentKey: "",
+      mathBypassPageKey: "",
+      mathBypassUntil: 0,
       navigationSerial: 0,
       lastNavigationAt: 0
     }
@@ -1658,6 +1665,36 @@
     rememberAllowedOnceKey(currentKey);
   }
 
+  function getRabbitHolePageKey(platform) {
+    return matcher.normalizeText([
+      platform,
+      location.pathname,
+      location.search
+    ].join(" "));
+  }
+
+  function rememberRabbitHoleMathBypass(platform, contentKey) {
+    var state = getRabbitHoleState(platform);
+
+    if (!state) {
+      return;
+    }
+
+    state.mathBypassContentKey = contentKey || "";
+    state.mathBypassPageKey = getRabbitHolePageKey(platform);
+    state.mathBypassUntil = Date.now() + MATH_BYPASS_MS;
+  }
+
+  function hasRabbitHoleMathBypass(platform, contentKey) {
+    var state = getRabbitHoleState(platform);
+    var pageKey = getRabbitHolePageKey(platform);
+
+    return !!(state &&
+      state.mathBypassUntil > Date.now() &&
+      ((contentKey && state.mathBypassContentKey === contentKey) ||
+        (pageKey && state.mathBypassPageKey === pageKey)));
+  }
+
   function clearRelatedFilters(node) {
     var relatedNodes = getRelatedFilteredNodes(node);
 
@@ -1693,6 +1730,9 @@
     state.active = false;
     state.watchedKeys = [];
     state.challenge = null;
+    state.mathBypassContentKey = "";
+    state.mathBypassPageKey = "";
+    state.mathBypassUntil = 0;
     state.navigationSerial = 0;
     state.lastNavigationAt = 0;
   }
@@ -1962,6 +2002,11 @@
       return false;
     }
 
+    if (hasRabbitHoleMathBypass(platform, contentKey)) {
+      rememberAllowedOnceKey(contentKey);
+      return false;
+    }
+
     if (hasRabbitHoleWatched(platform, contentKey)) {
       rememberAllowedOnceKey(contentKey);
       return false;
@@ -1982,14 +2027,18 @@
   function passRabbitHoleMathChallenge(platform, contentKey) {
     var state = getRabbitHoleState(platform);
 
-    if (!state || !contentKey) {
+    if (!state) {
       return;
     }
 
-    markRabbitHoleWatched(platform, contentKey);
     state.challenge = null;
-    rememberAllowedOnceKey(contentKey);
-    clearPlatformFiltersForKey(platform, contentKey);
+    rememberRabbitHoleMathBypass(platform, contentKey);
+
+    if (contentKey) {
+      markRabbitHoleWatched(platform, contentKey);
+      rememberAllowedOnceKey(contentKey);
+      clearPlatformFiltersForKey(platform, contentKey);
+    }
   }
 
   function getFacebookReelsEntryGateKey() {
