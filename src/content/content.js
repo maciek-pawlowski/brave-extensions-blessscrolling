@@ -1864,31 +1864,57 @@
     };
   }
 
-  function getDisplayedMathAnswer(questionText) {
-    var match = String(questionText || "").match(/(-?\d+)\s*([+\-×x*])\s*(-?\d+)/);
+  function getMathAnswerFromQuestion(questionText) {
+    var match = String(questionText || "")
+      .replace(/\u00a0/g, " ")
+      .match(/(-?\d+)\s*([+\-−–—×xX*✕✖⨯·•])\s*(-?\d+)/);
     var left;
     var right;
+    var operator;
 
     if (!match) {
       return null;
     }
 
     left = Number(match[1]);
+    operator = match[2];
     right = Number(match[3]);
 
     if (!Number.isFinite(left) || !Number.isFinite(right)) {
       return null;
     }
 
-    if (match[2] === "+") {
+    if (operator === "+") {
       return left + right;
     }
 
-    if (match[2] === "-") {
+    if (operator === "-" || operator === "−" || operator === "–" || operator === "—") {
       return left - right;
     }
 
     return left * right;
+  }
+
+  function getMathExpectedAnswer(button, overlay, question, challenge) {
+    var visibleAnswer = getMathAnswerFromQuestion(question && question.textContent);
+    var datasetQuestionAnswer = getMathAnswerFromQuestion(
+      (overlay && overlay.dataset.psfMathQuestion) ||
+      button.dataset.psfMathQuestion
+    );
+    var storedAnswer = Number(button.dataset.psfMathAnswer ||
+      (overlay && overlay.dataset.psfMathAnswer) ||
+      (challenge && String(challenge.answer)) ||
+      "");
+
+    if (Number.isFinite(visibleAnswer)) {
+      return visibleAnswer;
+    }
+
+    if (Number.isFinite(datasetQuestionAnswer)) {
+      return datasetQuestionAnswer;
+    }
+
+    return storedAnswer;
   }
 
   function getRabbitHoleChallenge(platform, contentKey) {
@@ -2499,12 +2525,7 @@
       var rawAnswer = String(mathInput && mathInput.value || "").trim().replace(",", ".");
       var answer = Number(rawAnswer);
       var challenge = mathState && mathState.challenge;
-      var displayedAnswer = getDisplayedMathAnswer(mathQuestion && mathQuestion.textContent);
-      var storedAnswer = Number(button.dataset.psfMathAnswer ||
-        (mathOverlay && mathOverlay.dataset.psfMathAnswer) ||
-        (challenge && String(challenge.answer)) ||
-        "");
-      var expectedAnswer = Number.isFinite(displayedAnswer) ? displayedAnswer : storedAnswer;
+      var expectedAnswer = getMathExpectedAnswer(button, mathOverlay, mathQuestion, challenge);
 
       contentKey = button.dataset.psfContentKey ||
         (mathOverlay && mathOverlay.dataset.psfContentKey) ||
@@ -2540,6 +2561,19 @@
     if (action === "block-creator") {
       addToList("blockedCreators", creator);
     }
+  }, true);
+
+  document.addEventListener("pointerdown", function handleMathPointerDown(event) {
+    var button = event.target.closest(".psf-overlay button[data-psf-action='math-submit']");
+
+    if (!button) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    button.click();
   }, true);
 
   document.addEventListener("keydown", function handleMathEnter(event) {
