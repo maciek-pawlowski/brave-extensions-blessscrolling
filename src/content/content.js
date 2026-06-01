@@ -1628,6 +1628,7 @@
     node.classList.remove("psf-filtered", "psf-covered", "psf-hidden", "psf-youtube-card", "psf-facebook-reel-card", "psf-has-overlay");
     node.removeAttribute("data-psf-status");
     node.removeAttribute("data-psf-reason");
+    node.removeAttribute("data-psf-platform");
     unblockPlayback(node);
 
     var overlay = node.querySelector(":scope > .psf-overlay");
@@ -1705,6 +1706,49 @@
 
     relatedNodes.forEach(function clearRelatedNode(relatedNode) {
       clearFilter(relatedNode);
+    });
+  }
+
+  function nodeMatchesAnyCandidate(node, candidates) {
+    return candidates.some(function matchesCandidate(candidate) {
+      return node === candidate ||
+        (candidate.contains && candidate.contains(node));
+    });
+  }
+
+  function getFilteredNodePlatform(node) {
+    if (!node) {
+      return "";
+    }
+
+    if (node.dataset && node.dataset.psfPlatform) {
+      return node.dataset.psfPlatform;
+    }
+
+    if (node.classList && node.classList.contains("psf-youtube-card")) {
+      return "youtube";
+    }
+
+    if (node.classList && (node.classList.contains("psf-facebook-reel-card") || node.classList.contains("psf-facebook-entry-gate"))) {
+      return "facebook";
+    }
+
+    return "";
+  }
+
+  function clearStalePlatformFilters(platform, candidates) {
+    Array.prototype.slice.call(document.querySelectorAll(".psf-filtered")).forEach(function clearStaleNode(node) {
+      if (getFilteredNodePlatform(node) !== platform) {
+        return;
+      }
+
+      if (nodeMatchesAnyCandidate(node, candidates)) {
+        return;
+      }
+
+      clearFilter(node);
+      processedNodes.delete(node);
+      allowedOnce.delete(node);
     });
   }
 
@@ -1964,6 +2008,7 @@
 
     node.classList.add("psf-filtered", "psf-covered");
     node.classList.remove("psf-hidden");
+    node.dataset.psfPlatform = platform;
 
     if (platform === "youtube") {
       node.classList.add("psf-youtube-card");
@@ -2076,6 +2121,7 @@
     gate.id = "psf-facebook-reels-entry-gate";
     gate.className = "psf-filtered psf-covered psf-facebook-entry-gate";
     gate.dataset.psfGate = "facebook-reels-entry";
+    gate.dataset.psfPlatform = "facebook";
     gate.dataset.psfStatus = "block";
     gate.dataset.psfReason = "Brama wejścia do Facebook Reels.";
 
@@ -2262,6 +2308,7 @@
     }
 
     node.classList.add("psf-filtered");
+    node.dataset.psfPlatform = video && video.platform ? video.platform : getPlatform();
     if (video && video.platform === "youtube") {
       node.classList.add("psf-youtube-card");
     } else {
@@ -2319,6 +2366,10 @@
       if (ensureFacebookReelsEntryGate(platform)) {
         return;
       }
+    }
+
+    if (platform === "youtube" || platform === "facebook" || platform === "instagram") {
+      clearStalePlatformFilters(platform, candidates);
     }
 
     if ((platform === "facebook" || platform === "youtube") && !isSequentialDoomContext(platform)) {
