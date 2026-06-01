@@ -778,6 +778,8 @@
   }
 
   function getContentKey(platform, node, video) {
+    var youtubeShortsId;
+
     if (platform === "facebook") {
       return matcher.normalizeText([
         "facebook",
@@ -791,6 +793,17 @@
     }
 
     if (platform === "youtube") {
+      youtubeShortsId = getYouTubeShortsContentId(node);
+
+      if (youtubeShortsId) {
+        return matcher.normalizeText([
+          "youtube",
+          youtubeShortsId,
+          video && video.creator,
+          video && video.handle
+        ].join(" ")).slice(0, 1000);
+      }
+
       return matcher.normalizeText([
         "youtube",
         location.pathname,
@@ -805,6 +818,36 @@
     }
 
     return getNodeFingerprint(node, video);
+  }
+
+  function getPathFromHref(href) {
+    try {
+      return new URL(href, location.origin).pathname;
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function getYouTubeShortsContentId(node) {
+    var shortsHref = node && pickAttribute(node, ["a[href*='/shorts/']"], "href");
+    var canonicalHref = pickAttribute(document, ["link[rel='canonical']"], "href");
+    var path = "";
+
+    if (/^\/shorts\/[^/?#]+/.test(location.pathname)) {
+      return location.pathname;
+    }
+
+    path = getPathFromHref(shortsHref);
+    if (/^\/shorts\/[^/?#]+/.test(path)) {
+      return path;
+    }
+
+    path = getPathFromHref(canonicalHref);
+    if (/^\/shorts\/[^/?#]+/.test(path)) {
+      return path;
+    }
+
+    return "";
   }
 
   function getYouTubeVideoSource(node) {
@@ -1603,6 +1646,48 @@
     }
   }
 
+  function getRelatedFilteredNodes(node) {
+    var nodes = [];
+    var current = node;
+
+    while (current && current !== document.body && current !== document.documentElement) {
+      if (current.classList && current.classList.contains("psf-filtered")) {
+        nodes.push(current);
+      }
+
+      current = current.parentElement;
+    }
+
+    if (node && node.querySelectorAll) {
+      nodes = nodes.concat(Array.prototype.slice.call(node.querySelectorAll(".psf-filtered")));
+    }
+
+    return uniqueNodes(nodes);
+  }
+
+  function rememberAllowedOnceForNodeAndKey(platform, node, key) {
+    var extractor = getExtractor(platform);
+    var video = extractor(node);
+    var currentKey = getContentKey(platform, node, video);
+
+    rememberAllowedOnceNode(node, platform);
+    rememberAllowedOnceKey(key);
+    rememberAllowedOnceKey(currentKey);
+  }
+
+  function clearRelatedFilters(node) {
+    var relatedNodes = getRelatedFilteredNodes(node);
+
+    if (!relatedNodes.length && node) {
+      clearFilter(node);
+      return;
+    }
+
+    relatedNodes.forEach(function clearRelatedNode(relatedNode) {
+      clearFilter(relatedNode);
+    });
+  }
+
   function clearFacebookMessengerFilters() {
     Array.prototype.slice.call(document.querySelectorAll(".psf-filtered")).forEach(function clearMessengerNode(node) {
       if (isFacebookMessengerSurface(node)) {
@@ -2261,18 +2346,22 @@
 
   document.addEventListener("click", function handleOverlayClick(event) {
     var button = event.target.closest(".psf-overlay button");
+    var overlay;
 
     if (!button) {
       return;
     }
 
-    var node = button.closest(".psf-filtered");
+    overlay = button.closest(".psf-overlay");
+
+    var node = button.closest(".psf-filtered") || (overlay && overlay.parentElement);
     var action = button.dataset.psfAction;
     var creator = button.dataset.psfCreator;
     var contentKey = button.dataset.psfContentKey || "";
 
     event.preventDefault();
     event.stopPropagation();
+    event.stopImmediatePropagation();
 
     if (!node) {
       return;
@@ -2343,7 +2432,8 @@
 
       if (rawAnswer !== "" && Number.isFinite(answer) && Number.isFinite(expectedAnswer) && answer === expectedAnswer) {
         passRabbitHoleMathChallenge(mathPlatform, contentKey);
-        clearFilter(node);
+        rememberAllowedOnceForNodeAndKey(mathPlatform, node, contentKey);
+        clearRelatedFilters(node);
         scheduleScan(20);
         return;
       }
