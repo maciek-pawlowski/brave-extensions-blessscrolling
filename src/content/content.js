@@ -1583,14 +1583,11 @@
   }
 
   function shouldFilter(result) {
-    return result.status === "block" || (result.status === "unknown" && config.strictMode);
+    return result.status === "block";
   }
 
   function classifyForCurrentContext(video, node) {
     var result = matcher.classifyVideo(video, config);
-    var creator = matcher.compactText([video && video.creator, video && video.handle]);
-    var blockedCreator;
-    var allowedCreator;
 
     if (video && video.platform === "youtube" && isYouTubeHomePage()) {
       return {
@@ -1606,32 +1603,18 @@
       };
     }
 
-    if (!(video && video.platform === "youtube" && isYouTubeChannelShortsPage())) {
+    if (result.status === "block") {
       return result;
     }
 
-    blockedCreator = matcher.creatorMatch(config.blockedCreators, creator);
-    if (blockedCreator) {
+    if (video && video.platform === "youtube" && isSequentialDoomContext("youtube")) {
       return {
         status: "block",
-        reason: "Zablokowany twórca: " + blockedCreator,
-        match: blockedCreator
+        reason: "Shortsy wymagają świadomego odblokowania."
       };
     }
 
-    allowedCreator = matcher.creatorMatch(config.allowedCreators, creator);
-    if (allowedCreator) {
-      return {
-        status: "allow",
-        reason: "Dozwolony twórca: " + allowedCreator,
-        match: allowedCreator
-      };
-    }
-
-    return {
-      status: "block",
-      reason: "Twórca nie jest na allowliście."
-    };
+    return result;
   }
 
   function clearFilter(node) {
@@ -2138,20 +2121,13 @@
 
     if (!isDoomPrompt && overlayCreator) {
       var creator = overlayCreator;
-      var allowButton = document.createElement("button");
       var blockButton = document.createElement("button");
-
-      allowButton.type = "button";
-      allowButton.dataset.psfAction = "allow-creator";
-      allowButton.dataset.psfCreator = creator;
-      allowButton.textContent = video.platform === "youtube" || video.platform === "facebook" ? "Dodaj twórcę" : "Zawsze pozwalaj temu twórcy";
 
       blockButton.type = "button";
       blockButton.dataset.psfAction = "block-creator";
       blockButton.dataset.psfCreator = creator;
       blockButton.textContent = "Blokuj twórcę";
 
-      actions.appendChild(allowButton);
       actions.appendChild(blockButton);
     }
 
@@ -2211,10 +2187,6 @@
   function getOverlayReason(video, result) {
     var fallback = "Ten film nie pasuje do aktualnych reguł.";
     var reason = (result && result.reason) || fallback;
-
-    if (video && (video.platform === "facebook" || video.platform === "youtube") && reason === "Brak dopasowania do whitelisty psychologii.") {
-      return "Brak dopasowania do whitelisty.";
-    }
 
     return reason;
   }
@@ -2453,11 +2425,6 @@
       pendingDoomPromptKeys[getPlatform()] = "";
       resetRabbitHole(getPlatform());
       location.assign(getPlatform() === "youtube" ? "https://www.youtube.com/" : "https://www.facebook.com/");
-      return;
-    }
-
-    if (action === "allow-creator") {
-      addToList("allowedCreators", creator);
       return;
     }
 

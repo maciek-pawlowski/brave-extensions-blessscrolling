@@ -263,10 +263,6 @@
   background: #ffd6d6 !important;
 }
 
-.psf-overlay button[data-psf-action="allow-creator"] {
-  background: #d7f7df !important;
-}
-
 .psf-overlay button[data-psf-action="doom-yes"] {
   background: #ffd6d6 !important;
 }

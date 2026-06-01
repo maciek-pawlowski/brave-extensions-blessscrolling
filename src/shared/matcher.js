@@ -74,9 +74,7 @@
       video && video.text
     ]);
     var blockedCreator = creatorMatch(activeConfig.blockedCreators, creator);
-    var allowedCreator = creatorMatch(activeConfig.allowedCreators, creator);
     var blockedKeyword = listMatch(activeConfig.blockedKeywords, text);
-    var allowedKeyword = listMatch(activeConfig.allowedKeywords, text);
 
     if (activeConfig.enabled === false) {
       return {
@@ -93,14 +91,6 @@
       };
     }
 
-    if (allowedCreator) {
-      return {
-        status: "allow",
-        reason: "Dozwolony twórca: " + allowedCreator,
-        match: allowedCreator
-      };
-    }
-
     if (blockedKeyword) {
       return {
         status: "block",
@@ -109,17 +99,9 @@
       };
     }
 
-    if (allowedKeyword) {
-      return {
-        status: "allow",
-        reason: "Dozwolone słowo: " + allowedKeyword,
-        match: allowedKeyword
-      };
-    }
-
     return {
       status: "unknown",
-      reason: "Brak dopasowania do whitelisty psychologii."
+      reason: "Brak dopasowania do reguł blokowania."
     };
   }
 

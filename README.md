@@ -7,13 +7,12 @@ bleSSScrolling is a Manifest V3 browser extension for people who want to reduce 
 ## What It Does
 
 - Hides YouTube Shorts from the YouTube home page completely.
-- Blocks YouTube Shorts in `/shorts` and channel Shorts tabs when they do not match your whitelist.
+- Blocks YouTube Shorts and Facebook Reels only when they match your local block rules or built-in doomscrolling friction screens.
 - Hides Facebook Reels from normal Facebook feeds and lists completely.
 - Blocks direct Facebook Reel pages with a friction screen before the next reel.
 - Adds a simple math challenge every 5 videos after you choose to continue doomscrolling.
 - Supports Instagram Reels as a best-effort web filter.
-- Lets you add allowed creators manually from the extension options.
-- Lets you add a creator from the blocking overlay with `Dodaj twórcę`.
+- Lets you block creators manually from the extension options or from supported blocking overlays.
 - Keeps all rules and filtering local in `chrome.storage.local`.
 
 The extension does not control YouTube, Facebook, or Instagram recommendation algorithms directly. It only changes what is visible in your browser after the platform loads the page.
@@ -33,26 +32,21 @@ After loading the extension, pin it in the browser toolbar and open the popup or
 
 ## Configuration
 
-The extension uses a local whitelist-first configuration:
+The extension uses a local blocklist-only configuration:
 
-- `allowedCreators` - creators/channels/profiles that should always be visible.
 - `blockedCreators` - creators/channels/profiles that should always be hidden.
-- `allowedKeywords` - keywords that allow videos, for example psychology or therapy topics.
 - `blockedKeywords` - keywords that block videos, for example prank, funny, drama, crashes, or memes.
-- `strictMode` - when enabled, content without an allowed match is blocked.
 - `overlayMode` - when enabled, blocked direct Shorts/Reels get a blocking screen with actions.
 
-Default keywords include psychology-focused Polish and English terms, plus common doomscrolling categories to block.
+There is no whitelist or allowed-creators feature. Content without a blocked creator or blocked keyword is not hidden by keyword rules, though platform-level friction screens can still appear on Shorts/Reels pages.
 
-## Adding Creators Manually
+## Blocking Creators Manually
 
 1. Open the extension popup.
-2. Click `Ustawienia`.
-3. Add the channel/profile name or handle to `Dozwoleni twórcy`.
+2. Click `Ustawienia reguł`.
+3. Add the channel/profile name or handle to `Zablokowani twórcy`.
 4. Save changes.
 5. Refresh YouTube/Facebook/Instagram.
-
-On supported blocking overlays you can also click `Dodaj twórcę`, which adds the detected creator to the allowlist.
 
 ## Privacy
 

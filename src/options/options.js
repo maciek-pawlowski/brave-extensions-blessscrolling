@@ -3,9 +3,7 @@
 
   var defaults = window.ShortMindDefaults;
   var fields = [
-    "allowedCreators",
     "blockedCreators",
-    "allowedKeywords",
     "blockedKeywords"
   ];
 
@@ -38,7 +36,6 @@
   function readForm() {
     var nextConfig = {
       enabled: getElement("enabled").checked,
-      strictMode: getElement("strictMode").checked,
       overlayMode: getElement("overlayMode").checked
     };
 
@@ -53,7 +50,6 @@
     var activeConfig = defaults.mergeConfig(config);
 
     getElement("enabled").checked = activeConfig.enabled;
-    getElement("strictMode").checked = activeConfig.strictMode;
     getElement("overlayMode").checked = activeConfig.overlayMode;
 
     fields.forEach(function writeField(name) {
@@ -84,7 +80,7 @@
     saveConfig(defaults.DEFAULT_CONFIG, "Przywrócono domyślne");
   });
 
-  ["enabled", "strictMode", "overlayMode"].forEach(function bindCheckbox(id) {
+  ["enabled", "overlayMode"].forEach(function bindCheckbox(id) {
     getElement(id).addEventListener("change", function onToggle() {
       saveConfig(readForm(), "Zapisano");
     });

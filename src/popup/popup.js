@@ -19,13 +19,11 @@
   function writeForm(config) {
     currentConfig = defaults.mergeConfig(config);
     getElement("enabled").checked = currentConfig.enabled;
-    getElement("strictMode").checked = currentConfig.strictMode;
   }
 
   function saveConfig() {
     var payload = {};
     currentConfig.enabled = getElement("enabled").checked;
-    currentConfig.strictMode = getElement("strictMode").checked;
     payload[defaults.STORAGE_KEY] = defaults.mergeConfig(currentConfig);
     chrome.storage.local.set(payload, function onSaved() {
       writeForm(payload[defaults.STORAGE_KEY]);
@@ -38,7 +36,6 @@
   });
 
   getElement("enabled").addEventListener("change", saveConfig);
-  getElement("strictMode").addEventListener("change", saveConfig);
   getElement("options").addEventListener("click", function openOptions() {
     chrome.runtime.openOptionsPage();
   });

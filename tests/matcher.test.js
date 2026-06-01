@@ -19,8 +19,8 @@ assert.strictEqual(
     creator: "Dr Anna Psycholog",
     title: "Jak regulacja emocji pomaga w lęku"
   }).status,
-  "allow",
-  "psychology keywords should be allowed"
+  "unknown",
+  "psychology keywords should not create implicit allow rules"
 );
 
 assert.strictEqual(
@@ -37,8 +37,8 @@ assert.strictEqual(
     creator: "Licensed Therapist",
     title: "Cognitive behavioral therapy coping skills for panic attacks"
   }).status,
-  "allow",
-  "expanded English psychology keywords should be allowed"
+  "unknown",
+  "English psychology keywords should not create implicit allow rules"
 );
 
 assert.strictEqual(
@@ -52,24 +52,13 @@ assert.strictEqual(
 
 assert.strictEqual(
   classify({
-    creator: "Trusted Therapist",
-    title: "Funny therapy meme"
-  }, {
-    allowedCreators: ["Trusted Therapist"]
-  }).status,
-  "allow",
-  "allowed creators should override blocked keywords"
-);
-
-assert.strictEqual(
-  classify({
     creator: "Blocked Channel",
     title: "Psychologia emocji"
   }, {
     blockedCreators: ["Blocked Channel"]
   }).status,
   "block",
-  "blocked creators should override allowed keywords"
+  "blocked creators should block"
 );
 
 assert.strictEqual(
