@@ -9,6 +9,7 @@ bleSSScrolling is a Manifest V3 browser extension for people who want to reduce 
 - Hides YouTube Shorts from the YouTube home page completely.
 - Blocks YouTube Shorts and Facebook Reels only when they match your local block rules or built-in doomscrolling friction screens.
 - Hides Facebook Reels from normal Facebook feeds and lists completely.
+- Blocks standard Facebook feed videos with a local overlay and stops playback.
 - Blocks direct Facebook Reel pages with a friction screen before the next reel.
 - Adds a simple math challenge every 5 videos after you choose to continue doomscrolling.
 - Supports Instagram Reels as a best-effort web filter.
@@ -20,7 +21,7 @@ The extension does not control YouTube, Facebook, or Instagram recommendation al
 ## Installation In Brave Or Chromium
 
 1. Open the latest GitHub Release.
-2. Download `bleSSScrolling-v0.2.5.zip`.
+2. Download `bleSSScrolling-v0.2.6.zip`.
 3. Unzip the downloaded file.
 4. Open `brave://extensions` in Brave, or `chrome://extensions` in Chrome/Chromium.
 5. Turn on `Developer mode`.

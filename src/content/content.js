@@ -349,6 +349,16 @@
       node.dataset.psfReason === "Rolki ukryte na Facebooku.");
   }
 
+  function isPreviouslyBlockedFacebookStandardVideo(node) {
+    return !!(node &&
+      node.classList &&
+      node.classList.contains("psf-filtered") &&
+      node.classList.contains("psf-facebook-video-card") &&
+      node.dataset &&
+      node.dataset.psfPlatform === "facebook" &&
+      node.dataset.psfReason === "Wideo ukryte na Facebooku.");
+  }
+
   function normalizeSignalText(value) {
     if (matcher && matcher.normalizeText) {
       return matcher.normalizeText(value);
@@ -751,7 +761,7 @@
   }
 
   function shouldUseFacebookCandidate(node) {
-    return !!(node && !isFacebookMessengerSurface(node) && (isFacebookActiveReelNode(node) || isFacebookInlineReelsContainer(node) || (!isDocumentScaleContainer(node) && (isFacebookReelCard(node) || !isFacebookChromeOrPreview(node)))));
+    return !!(node && !isFacebookMessengerSurface(node) && (isFacebookActiveReelNode(node) || isFacebookInlineReelsContainer(node) || isFacebookStandardVideoContainer(node) || (!isDocumentScaleContainer(node) && (isFacebookReelCard(node) || !isFacebookChromeOrPreview(node)))));
   }
 
   function isFacebookReelCard(node) {
@@ -878,6 +888,34 @@
 
   function shouldHideFacebookInlineReels(node) {
     return isFacebookInlineReelsContainer(node);
+  }
+
+  function hasPlayableFacebookVideo(node) {
+    return getVideosForNode(node).some(function keepPlayableVideo(video) {
+      return isPlayableVideoRect(video.getBoundingClientRect());
+    });
+  }
+
+  function isFacebookStandardVideoContainer(node) {
+    if (!node ||
+      node === document.body ||
+      node === document.documentElement ||
+      isFacebookReelWatchPage() ||
+      isFacebookActiveReelNode(node) ||
+      isFacebookInlineReelsContainer(node) ||
+      isFacebookMessengerSurface(node)) {
+      return false;
+    }
+
+    if (isPreviouslyBlockedFacebookStandardVideo(node)) {
+      return true;
+    }
+
+    if (node.closest && node.closest("[role='banner'], [role='navigation'], form[role='search']")) {
+      return false;
+    }
+
+    return hasPlayableFacebookVideo(node);
   }
 
   function findFacebookInlineReelsContainer(seed) {
@@ -1805,6 +1843,13 @@
       };
     }
 
+    if (video && video.platform === "facebook" && isFacebookStandardVideoContainer(node)) {
+      return {
+        status: "block",
+        reason: "Wideo ukryte na Facebooku."
+      };
+    }
+
     if (result.status === "block") {
       return result;
     }
@@ -1820,7 +1865,7 @@
   }
 
   function clearFilter(node) {
-    node.classList.remove("psf-filtered", "psf-covered", "psf-hidden", "psf-youtube-card", "psf-facebook-reel-card", "psf-has-overlay");
+    node.classList.remove("psf-filtered", "psf-covered", "psf-hidden", "psf-youtube-card", "psf-facebook-reel-card", "psf-facebook-video-card", "psf-has-overlay");
     node.removeAttribute("data-psf-status");
     node.removeAttribute("data-psf-reason");
     node.removeAttribute("data-psf-platform");
@@ -1925,7 +1970,7 @@
       return "youtube";
     }
 
-    if (node.classList && (node.classList.contains("psf-facebook-reel-card") || node.classList.contains("psf-facebook-entry-gate"))) {
+    if (node.classList && (node.classList.contains("psf-facebook-reel-card") || node.classList.contains("psf-facebook-video-card") || node.classList.contains("psf-facebook-entry-gate"))) {
       return "facebook";
     }
 
@@ -1942,7 +1987,7 @@
         return;
       }
 
-      if (platform === "facebook" && isPreviouslyHiddenFacebookInlineReels(node)) {
+      if (platform === "facebook" && (isPreviouslyHiddenFacebookInlineReels(node) || isPreviouslyBlockedFacebookStandardVideo(node))) {
         return;
       }
 
@@ -2519,7 +2564,7 @@
   }
 
   function applyFilter(node, video, result, contentKey) {
-    if (isDocumentScaleContainer(node) && !(video && video.platform === "facebook" && isFacebookActiveReelNode(node))) {
+    if (isDocumentScaleContainer(node) && !(video && video.platform === "facebook" && (isFacebookActiveReelNode(node) || isFacebookStandardVideoContainer(node)))) {
       return;
     }
 
@@ -2544,6 +2589,11 @@
       node.classList.add("psf-facebook-reel-card");
     } else {
       node.classList.remove("psf-facebook-reel-card");
+    }
+    if (video && video.platform === "facebook" && isFacebookStandardVideoContainer(node)) {
+      node.classList.add("psf-facebook-video-card");
+    } else {
+      node.classList.remove("psf-facebook-video-card");
     }
     node.dataset.psfStatus = result.status;
     node.dataset.psfReason = result.reason || "";

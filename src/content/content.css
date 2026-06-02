@@ -21,7 +21,8 @@
   overflow: hidden !important;
 }
 
-.psf-facebook-reel-card.psf-covered {
+.psf-facebook-reel-card.psf-covered,
+.psf-facebook-video-card.psf-covered {
   background: #11161d !important;
   border: 1px solid #343c49 !important;
   border-radius: 8px !important;
@@ -34,7 +35,8 @@
   display: none !important;
 }
 
-.psf-facebook-reel-card.psf-covered.psf-has-overlay > :not(.psf-overlay) {
+.psf-facebook-reel-card.psf-covered.psf-has-overlay > :not(.psf-overlay),
+.psf-facebook-video-card.psf-covered.psf-has-overlay > :not(.psf-overlay) {
   display: none !important;
 }
 
@@ -113,6 +115,18 @@
   z-index: auto !important;
 }
 
+.psf-facebook-video-card > .psf-overlay {
+  background: #11161d !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  inset: auto !important;
+  min-height: 260px !important;
+  padding: 20px !important;
+  position: static !important;
+  width: 100% !important;
+  z-index: auto !important;
+}
+
 .psf-overlay-doom {
   gap: 18px !important;
   padding: 28px !important;
@@ -150,7 +164,8 @@
   text-shadow: 0 2px 18px rgba(0, 0, 0, 0.75) !important;
 }
 
-.psf-youtube-card .psf-overlay-title {
+.psf-youtube-card .psf-overlay-title,
+.psf-facebook-video-card .psf-overlay-title {
   color: #ffffff !important;
   font-size: 22px !important;
   font-weight: 900 !important;
@@ -164,7 +179,8 @@
 }
 
 .psf-youtube-card .psf-overlay-doom .psf-overlay-title,
-.psf-facebook-reel-card .psf-overlay-doom .psf-overlay-title {
+.psf-facebook-reel-card .psf-overlay-doom .psf-overlay-title,
+.psf-facebook-video-card .psf-overlay-doom .psf-overlay-title {
   color: #ffffff !important;
   font-size: 30px !important;
   font-weight: 900 !important;
@@ -217,7 +233,8 @@
   min-height: 16px !important;
 }
 
-.psf-youtube-card .psf-overlay-reason {
+.psf-youtube-card .psf-overlay-reason,
+.psf-facebook-video-card .psf-overlay-reason {
   color: #d7dbe3 !important;
   font-size: 14px !important;
   max-width: min(340px, calc(100% - 24px)) !important;
@@ -257,7 +274,8 @@
   padding: 8px 10px !important;
 }
 
-.psf-youtube-card .psf-overlay button {
+.psf-youtube-card .psf-overlay button,
+.psf-facebook-video-card .psf-overlay button {
   font-size: 14px !important;
   min-height: 38px !important;
   padding: 10px 14px !important;
